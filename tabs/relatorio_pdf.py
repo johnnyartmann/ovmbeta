@@ -1829,10 +1829,15 @@ def gerar_relatorio_pdf(
         )
         pdf.ln(4)
 
-        mun_fem = df_feminicidio['municipio'].value_counts().head(8).reset_index()
+        if not df_geral.empty and len(df_geral['municipio'].unique()) <= 35:
+            muns_alvo = sorted(df_geral['municipio'].unique())
+            mun_fem = df_feminicidio['municipio'].value_counts().reindex(muns_alvo, fill_value=0).sort_values(ascending=False).reset_index()
+        else:
+            mun_fem = df_feminicidio['municipio'].value_counts().reset_index()
+
         mun_fem.columns = ['Município', 'Feminicídios']
-        mun_fem['% do Estado'] = (mun_fem['Feminicídios'] / total_fem * 100).apply(lambda x: f"{x:.1f}%")
-        add_table(pdf, mun_fem, title="Distribuição de Feminicídios por Município")
+        mun_fem['% do Total'] = (mun_fem['Feminicídios'] / max(1, total_fem) * 100).apply(lambda x: f"{x:.1f}%")
+        add_table(pdf, mun_fem, title="Distribuição de Feminicídios por Município", max_rows=55)
     else:
         pdf.set_font(pdf.font_family_name, 'I', 9)
         pdf.set_text_color(*CINZA_SUAVE)
