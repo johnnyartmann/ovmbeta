@@ -525,36 +525,37 @@ def render_chart_faixa_etaria(registros_por_faixa):
 
 
 def render_chart_tipo_crime(registros_por_fato, agrupamento="Consolidado", color_p=None):
-    """Página 5 - Gráfico 1: Fatos Comunicados Mais Frequentes (Top 7)."""
+    """Página 5 - Gráfico 1: Fatos Comunicados (Lei Maria da Penha)."""
     fig, ax = plt.subplots(figsize=(9.0, 3.8))
     ax.set_facecolor('white')
 
     if color_p and color_p in registros_por_fato.columns and agrupamento != "Consolidado":
-        top_crimes = registros_por_fato.groupby('fato_comunicado')['Quantidade'].sum().nlargest(6).index
-        df_sub = registros_por_fato[registros_por_fato['fato_comunicado'].isin(top_crimes)]
-        df_piv = df_sub.pivot_table(index='fato_comunicado', columns=color_p, values='Quantidade', fill_value=0)
+        df_piv = registros_por_fato.pivot_table(index='fato_comunicado', columns=color_p, values='Quantidade', fill_value=0)
+        df_piv['total_tmp'] = df_piv.sum(axis=1)
+        df_piv = df_piv.sort_values('total_tmp')
+        df_piv = df_piv.drop(columns=['total_tmp'])
         df_piv.plot(kind='barh', ax=ax, colormap='tab10', width=0.8)
         ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5)
     else:
-        df_top = registros_por_fato.head(7).iloc[::-1]
-        y_pos = range(len(df_top))
-        labels = [str(x)[:28] + '..' if len(str(x)) > 28 else str(x) for x in df_top['fato_comunicado']]
-        bars = ax.barh(y_pos, df_top['Quantidade'], color=COLOR_SECONDARY, height=0.6)
+        df_all = registros_por_fato.iloc[::-1]
+        y_pos = range(len(df_all))
+        labels = [str(x)[:28] + '..' if len(str(x)) > 28 else str(x) for x in df_all['fato_comunicado']]
+        bars = ax.barh(y_pos, df_all['Quantidade'], color=COLOR_SECONDARY, height=0.65)
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(labels, fontsize=7.5, color=COLOR_TEXT_PLOT)
+        ax.set_yticklabels(labels, fontsize=6.8, color=COLOR_TEXT_PLOT)
 
-        max_x = df_top['Quantidade'].max() if not df_top.empty else 1
+        max_x = df_all['Quantidade'].max() if not df_all.empty else 1
         for bar in bars:
             w = bar.get_width()
             ax.annotate(_fmt_br(w),
                         xy=(w, bar.get_y() + bar.get_height() / 2),
                         xytext=(4, 0),
                         textcoords="offset points",
-                        ha='left', va='center', fontsize=7.0, fontweight='bold', color=COLOR_PRIMARY)
-        ax.set_xlim(0, max_x * 1.2)
+                        ha='left', va='center', fontsize=6.5, fontweight='bold', color=COLOR_PRIMARY)
+        ax.set_xlim(0, max_x * 1.22)
 
     ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: _fmt_br(v)))
-    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.0)
     ax.grid(axis='x', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -899,9 +900,9 @@ def render_chart_heatmap_vulnerabilidade(df_geral):
     labels = ['0-12', '13-17', '18-29', '30-40', '41-50', '51-60', '61-70', '71-79', '80+']
     df_vuln['faixa_etaria'] = pd.cut(df_vuln['idade_vitima'], bins=bins, labels=labels, right=True)
 
-    top_crimes = df_vuln['fato_comunicado'].value_counts().head(6).index
-    df_sub = df_vuln[df_vuln['fato_comunicado'].isin(top_crimes)]
-    piv = df_sub.groupby(['fato_comunicado', 'faixa_etaria'], observed=False).size().unstack(fill_value=0)
+    piv = df_vuln.groupby(['fato_comunicado', 'faixa_etaria'], observed=False).size().unstack(fill_value=0)
+    ordem_crimes = df_vuln['fato_comunicado'].value_counts().index
+    piv = piv.loc[ordem_crimes]
 
     data_mat = piv.values
     im = ax.imshow(data_mat, cmap='BuPu', aspect='auto')
@@ -909,7 +910,7 @@ def render_chart_heatmap_vulnerabilidade(df_geral):
     ax.set_xticklabels(labels, fontsize=7.5, color=COLOR_TEXT_PLOT)
     crimes_lbl = [str(x)[:22] for x in piv.index]
     ax.set_yticks(range(len(crimes_lbl)))
-    ax.set_yticklabels(crimes_lbl, fontsize=7.0, color=COLOR_TEXT_PLOT)
+    ax.set_yticklabels(crimes_lbl, fontsize=6.8, color=COLOR_TEXT_PLOT)
 
     for i in range(len(crimes_lbl)):
         for j in range(len(labels)):
@@ -1088,8 +1089,7 @@ def render_chart_historico_penal_completo(df_feminicidio):
     pass_vd = df_feminicidio['passagem_por_violencia_domestica'].astype(str).str.upper().eq('SIM').sum() if 'passagem_por_violencia_domestica' in df_feminicidio.columns else 0
     bo_ant = df_feminicidio['bo_de_vd_contra_o_autor'].astype(str).str.upper().eq('SIM').sum() if 'bo_de_vd_contra_o_autor' in df_feminicidio.columns else 0
     preso = df_feminicidio['autor_preso'].astype(str).str.upper().eq('SIM').sum() if 'autor_preso' in df_feminicidio.columns else 0
-
-    labels = ['Passagem Policial Geral', 'Passagem por Violência Dom.', 'Vítima c/ BO Anterior', 'Autor Foi Preso']
+    labels = ['Passagem Policial Geral', 'Passagem por Violência Dom.', 'Vítima Fez BO contra o Autor', 'Autor Foi Preso']
     counts = [pass_geral, pass_vd, bo_ant, preso]
     pcts = [(c / total * 100) for c in counts]
 
@@ -1563,10 +1563,10 @@ def gerar_relatorio_pdf(
     pdf.ln(3)
 
     if not df_geral.empty:
-        top_crimes = df_geral['fato_comunicado'].value_counts().head(5).reset_index()
-        top_crimes.columns = ['Natureza do Crime', 'Total']
-        top_crimes['% do Total'] = (top_crimes['Total'] / total_registros * 100).apply(lambda x: f"{x:.1f}%")
-        add_table(pdf, top_crimes, title="Principais Fatos Comunicados (Top 5)")
+        crimes_tab = df_geral['fato_comunicado'].value_counts().reset_index()
+        crimes_tab.columns = ['Natureza do Crime', 'Total']
+        crimes_tab['% do Total'] = (crimes_tab['Total'] / total_registros * 100).apply(lambda x: f"{x:.1f}%")
+        add_table(pdf, crimes_tab, title="Fatos Comunicados (Lei Maria da Penha)")
 
     # =========================================================================
     # PÁGINA 2: SÉRIE HISTÓRICA MENSAL
@@ -1665,7 +1665,7 @@ def gerar_relatorio_pdf(
     add_section_header(
         pdf,
         "Natureza das Ocorrências e Vulnerabilidade",
-        "Crimes mais frequentes e distribuição percentual de tipos de crime por idade"
+        "Distribuição por tipo de crime e composição percentual por faixa etária"
     )
     if not df_geral.empty:
         if agrupamento == "Consolidado":
@@ -1690,7 +1690,7 @@ def gerar_relatorio_pdf(
         df_plot = crime_pct.melt(id_vars='faixa_etaria', var_name='fato_comunicado', value_name='percentual')
         img_vuln = render_chart_vulnerabilidade(df_plot)
 
-        add_two_images(pdf, img_fato, img_vuln, title1="Fatos Comunicados Mais Frequentes", title2="Composição Percentual de Crimes por Faixa Etária", max_h=92)
+        add_two_images(pdf, img_fato, img_vuln, title1="Fatos Comunicados (Lei Maria da Penha)", title2="Composição Percentual de Crimes por Faixa Etária", max_h=92)
 
     # =========================================================================
     # PÁGINA 6: O CALENDÁRIO DO RISCO — SAZONALIDADE E FERIADOS
@@ -1814,7 +1814,7 @@ def gerar_relatorio_pdf(
 
         add_kpis(pdf, [
             {'label': 'Total de Feminicídios', 'value': str(total_fem)},
-            {'label': '% Vítimas c/ BO Anterior', 'value': f"{pct_bo:.1f}%"},
+            {'label': '% Vítimas c/ BO contra o Autor', 'value': f"{pct_bo:.1f}%"},
             {'label': '% Autores c/ Histórico VD', 'value': f"{pct_hist:.1f}%"},
         ])
 
@@ -1824,15 +1824,15 @@ def gerar_relatorio_pdf(
             190, 4.2,
             f"A análise de feminicídios investiga as mortes consumadas de mulheres por razões da condição de sexo feminino. "
             f"No período foram registrados {total_fem} feminicídios em Santa Catarina. "
-            f"Em {pct_bo:.1f}% dos casos a vítima já possuía Boletim de Ocorrência anterior registrado contra o autor, "
+            f"Em {pct_bo:.1f}% dos casos a vítima já havia registrado Boletim de Ocorrência prévio por violência doméstica contra o próprio agressor, "
             f"e em {pct_hist:.1f}% dos casos o agressor já tinha passagens policiais prévias por violência doméstica."
         )
         pdf.ln(4)
 
-        top_mun_fem = df_feminicidio['municipio'].value_counts().head(8).reset_index()
-        top_mun_fem.columns = ['Município', 'Feminicídios']
-        top_mun_fem['% do Estado'] = (top_mun_fem['Feminicídios'] / total_fem * 100).apply(lambda x: f"{x:.1f}%")
-        add_table(pdf, top_mun_fem, title="Municípios com Maior Registro de Feminicídios (Top 8)")
+        mun_fem = df_feminicidio['municipio'].value_counts().head(8).reset_index()
+        mun_fem.columns = ['Município', 'Feminicídios']
+        mun_fem['% do Estado'] = (mun_fem['Feminicídios'] / total_fem * 100).apply(lambda x: f"{x:.1f}%")
+        add_table(pdf, mun_fem, title="Distribuição de Feminicídios por Município")
     else:
         pdf.set_font(pdf.font_family_name, 'I', 9)
         pdf.set_text_color(*CINZA_SUAVE)
