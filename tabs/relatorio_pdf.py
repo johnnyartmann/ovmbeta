@@ -12,6 +12,10 @@ from datetime import datetime
 
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import plotly.io as pio
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
@@ -332,10 +336,403 @@ class RelatorioOVMCompletoPDF(FPDF):
 
 
 # ============================================================================
-# FUNÇÕES DE APOIO AO LAYOUT
+# FUNÇÕES DE APOIO AO LAYOUT E RENDERIZAÇÃO DE GRÁFICOS EM ALTA DEFINIÇÃO
 # ============================================================================
+COLOR_PRIMARY = '#6A1B9A'
+COLOR_SECONDARY = '#8E24AA'
+COLOR_LIGHT = '#AB47BC'
+COLOR_ACCENT = '#CE93D8'
+COLOR_BAR_ACCENT = '#4A148C'
+COLOR_TEXT_PLOT = '#2D2D2D'
+COLOR_GRID_PLOT = '#E8EAF6'
+
+
+def _fmt_br(val):
+    """Formata inteiros no padrão brasileiro com ponto de milhar."""
+    try:
+        return f"{int(val):,}".replace(",", ".")
+    except Exception:
+        return str(val)
+
+
+def _fig_to_png_bytes(fig, dpi=180):
+    """Exporta a figura matplotlib diretamente para bytes PNG de alta resolução."""
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=dpi, bbox_inches='tight', facecolor='white', edgecolor='none')
+    plt.close(fig)
+    buf.seek(0)
+    return buf.getvalue()
+
+
+def render_chart_serie_temporal(df_temporal, agrupamento="Consolidado", color_p=None):
+    """Página 2: Série Histórica Mensal de Ocorrências."""
+    fig, ax = plt.subplots(figsize=(10.5, 4.8))
+    ax.set_facecolor('white')
+
+    if color_p and color_p in df_temporal.columns and agrupamento != "Consolidado":
+        categorias = df_temporal[color_p].unique()
+        palette = [COLOR_PRIMARY, COLOR_SECONDARY, '#1E88E5', '#43A047', '#FB8C00', '#E53935', '#8E24AA', '#3949AB']
+        for idx, cat in enumerate(categorias[:8]):
+            sub = df_temporal[df_temporal[color_p] == cat].sort_values('ano_mes')
+            ax.plot(range(len(sub)), sub['quantidade'], marker='o', markersize=3, label=str(cat)[:20],
+                    color=palette[idx % len(palette)], linewidth=1.8)
+        ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=7, loc='upper left')
+        x_labels = df_temporal['ano_mes'].unique()
+    else:
+        df_sorted = df_temporal.sort_values('ano_mes')
+        x = range(len(df_sorted))
+        y = df_sorted['quantidade'].values
+        ax.plot(x, y, marker='o', markersize=4, color=COLOR_PRIMARY, linewidth=2.2, label='Ocorrências')
+        ax.fill_between(x, y, color=COLOR_ACCENT, alpha=0.25)
+        x_labels = df_sorted['ano_mes'].values
+
+    n = len(x_labels)
+    step = max(1, n // 16)
+    ticks_idx = list(range(0, n, step))
+    if (n - 1) not in ticks_idx:
+        ticks_idx.append(n - 1)
+    ax.set_xticks(ticks_idx)
+    ax.set_xticklabels([x_labels[i] for i in ticks_idx], rotation=40, ha='right', fontsize=7.5, color=COLOR_TEXT_PLOT)
+
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: _fmt_br(v)))
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=8)
+    ax.grid(True, linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_ylabel('Quantidade de Registros', fontsize=8.5, fontweight='bold', color=COLOR_PRIMARY)
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_por_ano(registros_por_ano, agrupamento="Consolidado", color_p=None):
+    """Página 3 - Gráfico 1: Total de Ocorrências por Ano."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.8))
+    ax.set_facecolor('white')
+
+    if color_p and color_p in registros_por_ano.columns and agrupamento != "Consolidado":
+        df_piv = registros_por_ano.pivot_table(index='ano', columns=color_p, values='Quantidade', fill_value=0)
+        df_piv.plot(kind='bar', ax=ax, colormap='tab10', width=0.8)
+        ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5)
+    else:
+        bars = ax.bar(registros_por_ano['ano'].astype(str), registros_por_ano['Quantidade'], color=COLOR_SECONDARY, width=0.55, edgecolor='none')
+        max_y = registros_por_ano['Quantidade'].max() if not registros_por_ano.empty else 1
+        for bar in bars:
+            h = bar.get_height()
+            ax.annotate(_fmt_br(h),
+                        xy=(bar.get_x() + bar.get_width() / 2, h),
+                        xytext=(0, 3),
+                        textcoords="offset points",
+                        ha='center', va='bottom', fontsize=7.5, fontweight='bold', color=COLOR_PRIMARY)
+        ax.set_ylim(0, max_y * 1.15)
+
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: _fmt_br(v)))
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=8)
+    ax.grid(axis='y', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_ylabel('Total Anual', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_por_mes(registros_por_mes):
+    """Página 3 - Gráfico 2: Sazonalidade Mensal Acumulada."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.8))
+    ax.set_facecolor('white')
+
+    bars = ax.bar(registros_por_mes['Mês'], registros_por_mes['Quantidade'], color=COLOR_PRIMARY, width=0.6, edgecolor='none')
+    max_y = registros_por_mes['Quantidade'].max() if not registros_por_mes.empty else 1
+    for bar in bars:
+        h = bar.get_height()
+        ax.annotate(_fmt_br(h),
+                    xy=(bar.get_x() + bar.get_width() / 2, h),
+                    xytext=(0, 3),
+                    textcoords="offset points",
+                    ha='center', va='bottom', fontsize=7.0, fontweight='bold', color=COLOR_SECONDARY)
+    ax.set_ylim(0, max_y * 1.15)
+
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: _fmt_br(v)))
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=8)
+    ax.grid(axis='y', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_ylabel('Acumulado no Mês', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_dia_semana(registros_por_dia):
+    """Página 4 - Gráfico 1: Volume de Crimes por Dia da Semana."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.8))
+    ax.set_facecolor('white')
+
+    cores = [COLOR_BAR_ACCENT if d in ['Sáb', 'Dom'] else COLOR_SECONDARY for d in registros_por_dia['Dia da Semana']]
+    bars = ax.bar(registros_por_dia['Dia da Semana'], registros_por_dia['Quantidade'], color=cores, width=0.55)
+    max_y = registros_por_dia['Quantidade'].max() if not registros_por_dia.empty else 1
+    for bar in bars:
+        h = bar.get_height()
+        ax.annotate(_fmt_br(h),
+                    xy=(bar.get_x() + bar.get_width() / 2, h),
+                    xytext=(0, 3),
+                    textcoords="offset points",
+                    ha='center', va='bottom', fontsize=7.5, fontweight='bold', color=COLOR_PRIMARY)
+    ax.set_ylim(0, max_y * 1.15)
+
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: _fmt_br(v)))
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=8)
+    ax.grid(axis='y', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_ylabel('Quantidade', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_faixa_etaria(registros_por_faixa):
+    """Página 4 - Gráfico 2: Distribuição por Faixa Etária."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.8))
+    ax.set_facecolor('white')
+
+    bars = ax.bar(registros_por_faixa['Faixa Etária'].astype(str), registros_por_faixa['Quantidade'], color=COLOR_LIGHT, width=0.6)
+    max_y = registros_por_faixa['Quantidade'].max() if not registros_por_faixa.empty else 1
+    for bar in bars:
+        h = bar.get_height()
+        ax.annotate(_fmt_br(h),
+                    xy=(bar.get_x() + bar.get_width() / 2, h),
+                    xytext=(0, 3),
+                    textcoords="offset points",
+                    ha='center', va='bottom', fontsize=7.0, fontweight='bold', color=COLOR_PRIMARY)
+    ax.set_ylim(0, max_y * 1.15)
+
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: _fmt_br(v)))
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=8)
+    ax.grid(axis='y', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_ylabel('Total Vítimas', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_tipo_crime(registros_por_fato, agrupamento="Consolidado", color_p=None):
+    """Página 5 - Gráfico 1: Fatos Comunicados Mais Frequentes (Top 7)."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.8))
+    ax.set_facecolor('white')
+
+    if color_p and color_p in registros_por_fato.columns and agrupamento != "Consolidado":
+        top_crimes = registros_por_fato.groupby('fato_comunicado')['Quantidade'].sum().nlargest(6).index
+        df_sub = registros_por_fato[registros_por_fato['fato_comunicado'].isin(top_crimes)]
+        df_piv = df_sub.pivot_table(index='fato_comunicado', columns=color_p, values='Quantidade', fill_value=0)
+        df_piv.plot(kind='barh', ax=ax, colormap='tab10', width=0.8)
+        ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5)
+    else:
+        df_top = registros_por_fato.head(7).iloc[::-1]
+        y_pos = range(len(df_top))
+        labels = [str(x)[:28] + '..' if len(str(x)) > 28 else str(x) for x in df_top['fato_comunicado']]
+        bars = ax.barh(y_pos, df_top['Quantidade'], color=COLOR_SECONDARY, height=0.6)
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(labels, fontsize=7.5, color=COLOR_TEXT_PLOT)
+
+        max_x = df_top['Quantidade'].max() if not df_top.empty else 1
+        for bar in bars:
+            w = bar.get_width()
+            ax.annotate(_fmt_br(w),
+                        xy=(w, bar.get_y() + bar.get_height() / 2),
+                        xytext=(4, 0),
+                        textcoords="offset points",
+                        ha='left', va='center', fontsize=7.0, fontweight='bold', color=COLOR_PRIMARY)
+        ax.set_xlim(0, max_x * 1.2)
+
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: _fmt_br(v)))
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
+    ax.grid(axis='x', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_xlabel('Ocorrências Registradas', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_vulnerabilidade(df_plot):
+    """Página 5 - Gráfico 2: Composição Percentual de Crimes por Faixa Etária."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.8))
+    ax.set_facecolor('white')
+
+    df_piv = df_plot.pivot(index='faixa_etaria', columns='fato_comunicado', values='percentual').fillna(0)
+    palette = ['#4A148C', '#7B1FA2', '#9C27B0', '#AB47BC', '#BA68C8', '#CE93D8', '#E1BEE7', '#F3E5F5']
+    df_piv.plot(kind='bar', stacked=True, ax=ax, color=palette[:len(df_piv.columns)], width=0.65, edgecolor='white', linewidth=0.5)
+
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontsize=7.5)
+    ax.grid(axis='y', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_ylabel('% do Total na Idade', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
+    ax.set_xlabel('Faixa Etária', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
+    ax.set_ylim(0, 100)
+    ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.0, loc='center left', bbox_to_anchor=(1.01, 0.5))
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_feminicidio_serie(fem_por_mes, agrupamento="Consolidado", color_p=None):
+    """Página 9 - Gráfico 1: Série Temporal de Feminicídios."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.8))
+    ax.set_facecolor('white')
+
+    if color_p and color_p in fem_por_mes.columns and agrupamento != "Consolidado":
+        df_piv = fem_por_mes.pivot_table(index='Mês/Ano', columns=color_p, values='Quantidade', fill_value=0)
+        df_piv.plot(kind='bar', stacked=True, ax=ax, colormap='tab10', width=0.8)
+        ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5)
+    else:
+        df_sorted = fem_por_mes.sort_values('Mês/Ano')
+        bars = ax.bar(range(len(df_sorted)), df_sorted['Quantidade'], color='#C2185B', width=0.6)
+        x_labels = df_sorted['Mês/Ano'].values
+        n = len(x_labels)
+        step = max(1, n // 14)
+        ticks_idx = list(range(0, n, step))
+        if (n - 1) not in ticks_idx:
+            ticks_idx.append(n - 1)
+        ax.set_xticks(ticks_idx)
+        ax.set_xticklabels([x_labels[i] for i in ticks_idx], rotation=40, ha='right', fontsize=7.0, color=COLOR_TEXT_PLOT)
+
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: _fmt_br(v)))
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
+    ax.grid(axis='y', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_ylabel('Feminicídios / Mês', fontsize=8, fontweight='bold', color='#880E4F')
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_feminicidio_ano(fem_por_ano, agrupamento="Consolidado", color_p=None):
+    """Página 9 - Gráfico 2: Feminicídios por Ano."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.8))
+    ax.set_facecolor('white')
+
+    if color_p and color_p in fem_por_ano.columns and agrupamento != "Consolidado":
+        df_piv = fem_por_ano.pivot_table(index='ano', columns=color_p, values='Quantidade', fill_value=0)
+        df_piv.plot(kind='bar', ax=ax, colormap='tab10', width=0.8)
+        ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5)
+    else:
+        bars = ax.bar(fem_por_ano['ano'].astype(str), fem_por_ano['Quantidade'], color='#880E4F', width=0.55)
+        max_y = fem_por_ano['Quantidade'].max() if not fem_por_ano.empty else 1
+        for bar in bars:
+            h = bar.get_height()
+            ax.annotate(_fmt_br(h),
+                        xy=(bar.get_x() + bar.get_width() / 2, h),
+                        xytext=(0, 3),
+                        textcoords="offset points",
+                        ha='center', va='bottom', fontsize=7.5, fontweight='bold', color='#880E4F')
+        ax.set_ylim(0, max_y * 1.15)
+
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: _fmt_br(v)))
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=8)
+    ax.grid(axis='y', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_ylabel('Total Anual', fontsize=8, fontweight='bold', color='#880E4F')
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_vinculo_autor(vinculo, agrupamento="Consolidado", color_p=None):
+    """Página 10 - Gráfico 1: Vínculo / Relação com Autor."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.8))
+    ax.set_facecolor('white')
+
+    if color_p and color_p in vinculo.columns and agrupamento != "Consolidado":
+        df_piv = vinculo.pivot_table(index='relacao_autor', columns=color_p, values='Quantidade', fill_value=0)
+        df_piv.plot(kind='barh', ax=ax, colormap='tab10', width=0.8)
+        ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5)
+    else:
+        df_top = vinculo.head(6).iloc[::-1]
+        y_pos = range(len(df_top))
+        labels = [str(x)[:26] + '..' if len(str(x)) > 26 else str(x) for x in df_top['relacao_autor']]
+        bars = ax.barh(y_pos, df_top['Quantidade'], color='#AD1457', height=0.6)
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(labels, fontsize=7.5, color=COLOR_TEXT_PLOT)
+        max_x = df_top['Quantidade'].max() if not df_top.empty else 1
+        for bar in bars:
+            w = bar.get_width()
+            ax.annotate(_fmt_br(w),
+                        xy=(w, bar.get_y() + bar.get_height() / 2),
+                        xytext=(4, 0),
+                        textcoords="offset points",
+                        ha='left', va='center', fontsize=7.5, fontweight='bold', color='#880E4F')
+        ax.set_xlim(0, max_x * 1.2)
+
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: _fmt_br(v)))
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
+    ax.grid(axis='x', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_xlabel('Feminicídios Registrados', fontsize=8, fontweight='bold', color='#880E4F')
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_meio_crime(meio, agrupamento="Consolidado", color_p=None):
+    """Página 10 - Gráfico 2: Meio Empregado no Feminicídio."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.8))
+    ax.set_facecolor('white')
+
+    if color_p and color_p in meio.columns and agrupamento != "Consolidado":
+        df_piv = meio.pivot_table(index='meio_crime', columns=color_p, values='Quantidade', fill_value=0)
+        df_piv.plot(kind='barh', ax=ax, colormap='tab10', width=0.8)
+        ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5)
+    else:
+        df_top = meio.head(6).iloc[::-1]
+        y_pos = range(len(df_top))
+        labels = [str(x)[:26] + '..' if len(str(x)) > 26 else str(x) for x in df_top['meio_crime']]
+        bars = ax.barh(y_pos, df_top['Quantidade'], color='#C2185B', height=0.6)
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(labels, fontsize=7.5, color=COLOR_TEXT_PLOT)
+        max_x = df_top['Quantidade'].max() if not df_top.empty else 1
+        for bar in bars:
+            w = bar.get_width()
+            ax.annotate(_fmt_br(w),
+                        xy=(w, bar.get_y() + bar.get_height() / 2),
+                        xytext=(4, 0),
+                        textcoords="offset points",
+                        ha='left', va='center', fontsize=7.5, fontweight='bold', color='#880E4F')
+        ax.set_xlim(0, max_x * 1.2)
+
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: _fmt_br(v)))
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
+    ax.grid(axis='x', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_xlabel('Feminicídios Registrados', fontsize=8, fontweight='bold', color='#880E4F')
+
+    return _fig_to_png_bytes(fig)
+
+
 def _fig_to_image(fig, width=900, height=450):
-    """Converte uma figura Plotly em bytes PNG de alta definição sem menus."""
+    """Converte uma figura Plotly em bytes PNG com fallback resiliente."""
     if fig is None:
         return None
     try:
@@ -810,8 +1207,7 @@ def gerar_relatorio_pdf(
             registros_por_mes_ano = df_temporal.groupby(['ano_mes', col_agrup], observed=True).size().reset_index(name='quantidade').sort_values('ano_mes')
             color_p = col_agrup
 
-        fig_temporal = plot_serie_temporal(registros_por_mes_ano, "Linha", agrupamento, color_p)
-        img_temporal = _fig_to_image(fig_temporal, width=1050, height=520)
+        img_temporal = render_chart_serie_temporal(registros_por_mes_ano, agrupamento, color_p)
         add_image_box(pdf, img_temporal, w=190, max_h=190)
 
     # =========================================================================
@@ -837,8 +1233,7 @@ def gerar_relatorio_pdf(
 
         if not registros_por_ano.empty:
             registros_por_ano['ano'] = registros_por_ano['ano'].apply(lambda x: f'{x} (Parcial)' if x == ano_corrente else str(x))
-        fig_ano = plot_por_ano(registros_por_ano, "Barras", agrupamento, color_p)
-        img_ano = _fig_to_image(fig_ano, width=900, height=380)
+        img_ano = render_chart_por_ano(registros_por_ano, agrupamento, color_p)
 
         meses_ordem = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
         nomes_meses_pt = {'January': 'Jan', 'February': 'Fev', 'March': 'Mar', 'April': 'Abr', 'May': 'Mai', 'June': 'Jun', 'July': 'Jul', 'August': 'Ago', 'September': 'Set', 'October': 'Out', 'November': 'Nov', 'December': 'Dez'}
@@ -847,8 +1242,7 @@ def gerar_relatorio_pdf(
         registros_por_mes = df_geral_temp['mes_cat'].value_counts().sort_index().reset_index()
         registros_por_mes.columns = ['Mês', 'Quantidade']
         registros_por_mes['Mês'] = registros_por_mes['Mês'].map(nomes_meses_pt)
-        fig_mes = plot_por_mes(registros_por_mes, "Barras")
-        img_mes = _fig_to_image(fig_mes, width=900, height=380)
+        img_mes = render_chart_por_mes(registros_por_mes)
 
         add_two_images(pdf, img_ano, img_mes, title1="Total de Ocorrências por Ano", title2="Sazonalidade Mensal Acumulada", max_h=92)
 
@@ -870,8 +1264,7 @@ def gerar_relatorio_pdf(
         registros_por_dia = df_geral_temp['dia_semana_cat'].value_counts().sort_index().reset_index()
         registros_por_dia.columns = ['Dia da Semana', 'Quantidade']
         registros_por_dia['Dia da Semana'] = registros_por_dia['Dia da Semana'].map(nomes_dias_pt)
-        fig_dia = plot_dia_semana(registros_por_dia, "Barras")
-        img_dia = _fig_to_image(fig_dia, width=900, height=380)
+        img_dia = render_chart_dia_semana(registros_por_dia)
 
         df_faixa = df_geral.dropna(subset=['idade_vitima']).copy()
         bins = [0, 12, 17, 29, 40, 50, 60, 70, 79, 120]
@@ -879,8 +1272,7 @@ def gerar_relatorio_pdf(
         df_faixa['faixa_etaria'] = pd.cut(df_faixa['idade_vitima'], bins=bins, labels=labels, right=True)
         registros_por_faixa = df_faixa['faixa_etaria'].value_counts().sort_index().reset_index()
         registros_por_faixa.columns = ['Faixa Etária', 'Quantidade']
-        fig_faixa = plot_faixa_etaria(registros_por_faixa, "Barras")
-        img_faixa = _fig_to_image(fig_faixa, width=900, height=380)
+        img_faixa = render_chart_faixa_etaria(registros_por_faixa)
 
         add_two_images(pdf, img_dia, img_faixa, title1="Volume de Crimes por Dia da Semana", title2="Distribuição por Faixa Etária da Vítima", max_h=92)
 
@@ -904,8 +1296,7 @@ def gerar_relatorio_pdf(
             registros_por_fato = df_geral.groupby(['fato_comunicado', col_agrup], observed=True).size().reset_index(name='Quantidade')
             color_p = col_agrup
 
-        fig_fato = plot_tipo_crime(registros_por_fato, "Barras", agrupamento, color_p)
-        img_fato = _fig_to_image(fig_fato, width=900, height=380)
+        img_fato = render_chart_tipo_crime(registros_por_fato, agrupamento, color_p)
 
         df_vuln = df_geral.dropna(subset=['idade_vitima']).copy()
         bins = [0, 12, 17, 29, 40, 50, 60, 70, 79, 120]
@@ -915,8 +1306,7 @@ def gerar_relatorio_pdf(
         crime_pct = crime_counts.div(crime_counts.sum(axis=1), axis=0) * 100
         crime_pct = crime_pct.reset_index()
         df_plot = crime_pct.melt(id_vars='faixa_etaria', var_name='fato_comunicado', value_name='percentual')
-        fig_vuln = plot_barras_vulnerabilidade(df_plot)
-        img_vuln = _fig_to_image(fig_vuln, width=900, height=380)
+        img_vuln = render_chart_vulnerabilidade(df_plot)
 
         add_two_images(pdf, img_fato, img_vuln, title1="Fatos Comunicados Mais Frequentes", title2="Composição Percentual de Crimes por Faixa Etária", max_h=92)
 
@@ -1022,8 +1412,7 @@ def gerar_relatorio_pdf(
             fem_por_mes = df_fem_temp.groupby(['ano_mes', col_agrup], observed=True).size().reset_index(name='Quantidade')
             color_p = col_agrup
         fem_por_mes.rename(columns={'ano_mes': 'Mês/Ano'}, inplace=True)
-        fig_fem_serie = plot_feminicidio_serie_temporal(fem_por_mes, "Barras", agrupamento, color_p)
-        img_fem_serie = _fig_to_image(fig_fem_serie, width=900, height=380)
+        img_fem_serie = render_chart_feminicidio_serie(fem_por_mes, agrupamento, color_p)
 
         ano_corrente = pd.Timestamp.now().year
         if agrupamento == "Consolidado":
@@ -1038,8 +1427,7 @@ def gerar_relatorio_pdf(
 
         if not fem_por_ano.empty:
             fem_por_ano['ano'] = fem_por_ano['ano'].apply(lambda x: f'{x} (Parcial)' if x == ano_corrente else str(x))
-        fig_fem_ano = plot_feminicidio_por_ano(fem_por_ano, "Barras", agrupamento, color_p)
-        img_fem_ano = _fig_to_image(fig_fem_ano, width=900, height=380)
+        img_fem_ano = render_chart_feminicidio_ano(fem_por_ano, agrupamento, color_p)
 
         add_two_images(pdf, img_fem_serie, img_fem_ano, title1="Série Temporal de Feminicídios", title2="Feminicídios por Ano", max_h=92)
 
@@ -1063,8 +1451,7 @@ def gerar_relatorio_pdf(
             vinculo = df_feminicidio.groupby(['relacao_autor', col_agrup], observed=True).size().reset_index(name='Quantidade')
             color_p = col_agrup
 
-        fig_vinculo = plot_vinculo_autor(vinculo, "Barras", agrupamento, color_p)
-        img_vinculo = _fig_to_image(fig_vinculo, width=900, height=380)
+        img_vinculo = render_chart_vinculo_autor(vinculo, agrupamento, color_p)
 
         if agrupamento == "Consolidado":
             meio = df_feminicidio['meio_crime'].value_counts().reset_index()
@@ -1076,8 +1463,7 @@ def gerar_relatorio_pdf(
             meio = df_feminicidio.groupby(['meio_crime', col_agrup], observed=True).size().reset_index(name='Quantidade')
             color_p = col_agrup
 
-        fig_meio = plot_meio_crime(meio, "Barras", agrupamento, color_p)
-        img_meio = _fig_to_image(fig_meio, width=900, height=380)
+        img_meio = render_chart_meio_crime(meio, agrupamento, color_p)
 
         add_two_images(pdf, img_vinculo, img_meio, title1="Vínculo / Relação da Vítima com o Autor", title2="Meio Empregado no Feminicídio", max_h=92)
 
