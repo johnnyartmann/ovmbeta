@@ -73,50 +73,131 @@ class RelatorioOVMCompletoPDF(FPDF):
         self.logo_path = logo_path
         self.filtros_info = filtros_info or {}
 
-        # Suporte a fontes Unicode cross-platform (Windows e Linux Debian/Streamlit Cloud)
+        # Suporte a fontes Unicode cross-platform (Windows, Linux Debian/Ubuntu/Streamlit Cloud, macOS)
         self.font_family_name = 'Helvetica'
+        font_candidates = []
+
+        # 1. Matplotlib bundled fonts (100% garantido em qualquer ambiente onde matplotlib estiver instalado)
+        try:
+            import matplotlib
+            mpl_ttf_dir = os.path.join(matplotlib.get_data_path(), 'fonts', 'ttf')
+            font_candidates.append((
+                os.path.join(mpl_ttf_dir, 'DejaVuSans.ttf'),
+                os.path.join(mpl_ttf_dir, 'DejaVuSans-Bold.ttf'),
+                os.path.join(mpl_ttf_dir, 'DejaVuSans-Oblique.ttf'),
+                os.path.join(mpl_ttf_dir, 'DejaVuSans-BoldOblique.ttf'),
+            ))
+        except Exception:
+            pass
+
+        # 2. Windows (Arial)
         windir = os.environ.get('WINDIR', 'C:/Windows')
-        font_candidates = [
-            # Windows (Arial)
-            (os.path.join(windir, 'Fonts', 'arial.ttf'),
-             os.path.join(windir, 'Fonts', 'arialbd.ttf'),
-             os.path.join(windir, 'Fonts', 'ariali.ttf'),
-             os.path.join(windir, 'Fonts', 'arialbi.ttf')),
-            # Linux Debian / Ubuntu / Streamlit Cloud (DejaVu Sans)
+        font_candidates.append((
+            os.path.join(windir, 'Fonts', 'arial.ttf'),
+            os.path.join(windir, 'Fonts', 'arialbd.ttf'),
+            os.path.join(windir, 'Fonts', 'ariali.ttf'),
+            os.path.join(windir, 'Fonts', 'arialbi.ttf'),
+        ))
+
+        # 3. Linux Debian / Ubuntu / Streamlit Cloud
+        font_candidates.extend([
             ('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
              '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
              '/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf',
              '/usr/share/fonts/truetype/dejavu/DejaVuSans-BoldOblique.ttf'),
-            # Linux Liberation Sans
             ('/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
              '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
              '/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf',
              '/usr/share/fonts/truetype/liberation/LiberationSans-BoldItalic.ttf'),
-            # Linux FreeSans
             ('/usr/share/fonts/truetype/freefont/FreeSans.ttf',
              '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf',
              '/usr/share/fonts/truetype/freefont/FreeSansOblique.ttf',
              '/usr/share/fonts/truetype/freefont/FreeSansBoldOblique.ttf'),
-        ]
+        ])
+
+        # 4. macOS
+        font_candidates.extend([
+            ('/Library/Fonts/Arial.ttf',
+             '/Library/Fonts/Arial Bold.ttf',
+             '/Library/Fonts/Arial Italic.ttf',
+             '/Library/Fonts/Arial Bold Italic.ttf'),
+            ('/Library/Fonts/DejaVuSans.ttf',
+             '/Library/Fonts/DejaVuSans-Bold.ttf',
+             '/Library/Fonts/DejaVuSans-Oblique.ttf',
+             '/Library/Fonts/DejaVuSans-BoldOblique.ttf'),
+        ])
 
         for reg, bld, itl, bi in font_candidates:
-            reg_clean = reg.replace('\\', '/')
-            if os.path.exists(reg_clean):
+            if reg and os.path.exists(reg.replace('\\', '/')):
+                reg_clean = reg.replace('\\', '/')
                 try:
                     self.add_font('CustomUnicodeFont', '', reg_clean)
-                    if os.path.exists(bld.replace('\\', '/')):
+                    if bld and os.path.exists(bld.replace('\\', '/')):
                         self.add_font('CustomUnicodeFont', 'B', bld.replace('\\', '/'))
-                    if os.path.exists(itl.replace('\\', '/')):
+                    if itl and os.path.exists(itl.replace('\\', '/')):
                         self.add_font('CustomUnicodeFont', 'I', itl.replace('\\', '/'))
-                    if os.path.exists(bi.replace('\\', '/')):
+                    if bi and os.path.exists(bi.replace('\\', '/')):
                         self.add_font('CustomUnicodeFont', 'BI', bi.replace('\\', '/'))
                     self.font_family_name = 'CustomUnicodeFont'
                     break
                 except Exception:
-                    pass
+                    continue
 
         self.set_auto_page_break(auto=True, margin=14)
         self.set_margins(left=10, top=10, right=10)
+
+    def _sanitize_text(self, txt):
+        """Sanitiza strings para evitar erro de codificação caso a fonte seja Helvetica (Latin-1)."""
+        if txt is None:
+            return ''
+        txt = str(txt)
+        if self.font_family_name == 'Helvetica':
+            replacements = {
+                '•': '-',
+                'Δ': 'Dif.',
+                '—': '-',
+                '–': '-',
+                '“': '"',
+                '”': '"',
+                '‘': "'",
+                '’': "'",
+                '…': '...',
+                '≤': '<=',
+                '≥': '>=',
+                '≠': '!=',
+                '≈': '~',
+            }
+            for k, v in replacements.items():
+                txt = txt.replace(k, v)
+            try:
+                txt = txt.encode('latin-1', errors='replace').decode('latin-1')
+            except Exception:
+                pass
+        return txt
+
+    def cell(self, *args, **kwargs):
+        """Sobrescreve cell garantindo sanitização de caracteres incompatíveis."""
+        if len(args) >= 3:
+            args = list(args)
+            args[2] = self._sanitize_text(args[2])
+            args = tuple(args)
+        elif 'text' in kwargs:
+            kwargs['text'] = self._sanitize_text(kwargs['text'])
+        elif 'txt' in kwargs:
+            kwargs['txt'] = self._sanitize_text(kwargs['txt'])
+        return super().cell(*args, **kwargs)
+
+    def multi_cell(self, *args, **kwargs):
+        """Sobrescreve multi_cell garantindo sanitização de caracteres incompatíveis."""
+        if len(args) >= 3:
+            args = list(args)
+            args[2] = self._sanitize_text(args[2])
+            args = tuple(args)
+        elif 'text' in kwargs:
+            kwargs['text'] = self._sanitize_text(kwargs['text'])
+        elif 'txt' in kwargs:
+            kwargs['txt'] = self._sanitize_text(kwargs['txt'])
+        return super().multi_cell(*args, **kwargs)
 
     def header(self):
         """Cabeçalho Institucional Oficial no topo de CADA página."""
@@ -142,10 +223,11 @@ class RelatorioOVMCompletoPDF(FPDF):
         self.set_text_color(*ROXO_ESCURO)
         self.cell(190 - text_x + 10, 4.2, 'OBSERVATÓRIO DA VIOLÊNCIA CONTRA A MULHER - SC', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
+        bullet = '•' if self.font_family_name != 'Helvetica' else '-'
         self.set_x(text_x)
         self.set_font(self.font_family_name, 'B', 7.8)
         self.set_text_color(*ROXO_MEDIO)
-        self.cell(190 - text_x + 10, 3.8, 'Relatório Analítico Oficial • Análise Geral e Feminicídios', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self.cell(190 - text_x + 10, 3.8, f'Relatório Analítico Oficial {bullet} Análise Geral e Feminicídios', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
         self.set_x(text_x)
         self.set_font(self.font_family_name, '', 6.6)
@@ -188,25 +270,25 @@ class RelatorioOVMCompletoPDF(FPDF):
         faixa_str = self.filtros_info.get('faixa_etaria', 'Todas as idades (0 a 100+ anos)')
         vis_str = self.filtros_info.get('visualizacao', 'Agrupado por Consolidado')
 
-        bullet = '• ' if self.font_family_name != 'Helvetica' else '- '
+        bullet_item = '• ' if self.font_family_name != 'Helvetica' else '- '
 
         # Linha 1
-        self._render_filter_item(col1_x, curr_y, f'{bullet}Período: ', periodo_str, 92)
-        self._render_filter_item(col2_x, curr_y, f'{bullet}Abrangência: ', abrangencia_str, 90)
+        self._render_filter_item(col1_x, curr_y, f'{bullet_item}Período: ', periodo_str, 92)
+        self._render_filter_item(col2_x, curr_y, f'{bullet_item}Abrangência: ', abrangencia_str, 90)
         curr_y += line_h
 
         # Linha 2
-        self._render_filter_item(col1_x, curr_y, f'{bullet}Municípios: ', municipios_str, 92)
-        self._render_filter_item(col2_x, curr_y, f'{bullet}Associações de Municípios: ', assocs_str, 90)
+        self._render_filter_item(col1_x, curr_y, f'{bullet_item}Municípios: ', municipios_str, 92)
+        self._render_filter_item(col2_x, curr_y, f'{bullet_item}Associações de Municípios: ', assocs_str, 90)
         curr_y += line_h
 
         # Linha 3
-        self._render_filter_item(col1_x, curr_y, f'{bullet}Crimes: ', crimes_str, 92)
-        self._render_filter_item(col2_x, curr_y, f'{bullet}Faixa Etária: ', faixa_str, 90)
+        self._render_filter_item(col1_x, curr_y, f'{bullet_item}Crimes: ', crimes_str, 92)
+        self._render_filter_item(col2_x, curr_y, f'{bullet_item}Faixa Etária: ', faixa_str, 90)
         curr_y += line_h
 
         # Linha 4
-        self._render_filter_item(col1_x, curr_y, f'{bullet}Visualização: ', vis_str, 92)
+        self._render_filter_item(col1_x, curr_y, f'{bullet_item}Visualização: ', vis_str, 92)
 
         # 5. Linha divisória roxa
         sep_y = box_y + box_h + 1.8
@@ -241,10 +323,11 @@ class RelatorioOVMCompletoPDF(FPDF):
         self.set_line_width(0.3)
         self.line(10, self.get_y(), 200, self.get_y())
 
+        bullet = '•' if self.font_family_name != 'Helvetica' else '-'
         self.set_y(-9)
         self.set_font(self.font_family_name, 'I', 6.8)
         self.set_text_color(*CINZA_SUAVE)
-        self.cell(100, 5, 'Observatório da Violência Contra a Mulher - SC • Relatório Oficial', align='L')
+        self.cell(100, 5, f'Observatório da Violência Contra a Mulher - SC {bullet} Relatório Oficial', align='L')
         self.cell(90, 5, f'Página {self.page_no()} de {{nb}}', align='R')
 
 
@@ -387,13 +470,14 @@ def add_table(pdf, df, col_widths=None, max_rows=55, title=None):
 
     # Simplifica cabeçalhos longos para o PDF
     rename_dict = {}
+    delta_symbol = "Δ" if pdf.font_family_name != 'Helvetica' else "Dif."
     for c in df_display.columns:
         c_str = str(c)
         if 'Diferença' in c_str:
             anos = [p for p in c_str.split() if '-' in p]
             if anos:
                 ano_part = anos[0].replace('20', '')
-                rename_dict[c] = f"Δ {ano_part}"
+                rename_dict[c] = f"{delta_symbol} {ano_part}"
             else:
                 rename_dict[c] = "Dif.%"
         elif 'Tendência' in c_str:
@@ -535,22 +619,39 @@ def gerar_relatorio_pdf(
     import streamlit as st
 
     # Recupera do session_state caso parâmetros não sejam passados diretamente
-    if df_geral is None:
-        df_geral = st.session_state.get('df_geral_filtrado', pd.DataFrame())
-    if df_feminicidio is None:
-        df_feminicidio = st.session_state.get('df_feminicidio_filtrado', pd.DataFrame())
-    if df_populacao is None:
-        df_populacao = st.session_state.get('df_populacao', pd.DataFrame())
-    if df_regioes is None:
-        df_regioes = st.session_state.get('df_regioes', pd.DataFrame())
-    if df_calendario is None:
-        df_calendario = st.session_state.get('df_calendario', pd.DataFrame())
+    try:
+        if df_geral is None:
+            df_geral = st.session_state.get('df_geral_filtrado', pd.DataFrame())
+        if df_feminicidio is None:
+            df_feminicidio = st.session_state.get('df_feminicidio_filtrado', pd.DataFrame())
+        if df_populacao is None:
+            df_populacao = st.session_state.get('df_populacao', pd.DataFrame())
+        if df_regioes is None:
+            df_regioes = st.session_state.get('df_regioes', pd.DataFrame())
+        if df_calendario is None:
+            df_calendario = st.session_state.get('df_calendario', pd.DataFrame())
 
-    agrupamento = st.session_state.get('agrupamento_selecionado', agrupamento)
-    if data_inicial is None:
-        data_inicial = st.session_state.get('data_inicial')
-    if data_final is None:
-        data_final = st.session_state.get('data_final')
+        if agrupamento is None or agrupamento == "Consolidado":
+            agrupamento = st.session_state.get('agrupamento_selecionado', agrupamento)
+        if data_inicial is None:
+            data_inicial = st.session_state.get('data_inicial')
+        if data_final is None:
+            data_final = st.session_state.get('data_final')
+    except Exception:
+        pass
+
+    if df_geral is None:
+        df_geral = pd.DataFrame()
+    if df_feminicidio is None:
+        df_feminicidio = pd.DataFrame()
+    if df_populacao is None:
+        df_populacao = pd.DataFrame()
+    if df_regioes is None:
+        df_regioes = pd.DataFrame()
+    if df_calendario is None:
+        df_calendario = pd.DataFrame()
+    if agrupamento is None:
+        agrupamento = "Consolidado"
 
     # Monta textos descritivos dos filtros
     if data_inicial and data_final:
