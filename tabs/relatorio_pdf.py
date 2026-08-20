@@ -731,6 +731,388 @@ def render_chart_meio_crime(meio, agrupamento="Consolidado", color_p=None):
     return _fig_to_png_bytes(fig)
 
 
+def render_chart_sazonal_tipo_dia(df_geral, df_calendario, data_inicial, data_final):
+    """Página 6 - Gráfico 1: Média Diária por Categoria de Dia."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.6))
+    ax.set_facecolor('white')
+
+    if df_geral.empty or df_calendario.empty:
+        ax.text(0.5, 0.5, 'Dados insuficientes para análise sazonal', ha='center', va='center', fontsize=8)
+        return _fig_to_png_bytes(fig)
+
+    df_temp = df_geral.copy()
+    df_temp['data_fato_date'] = df_temp['data_fato'].dt.date
+    cal_merge = df_calendario.copy()
+    cal_merge['data_fato_date'] = pd.to_datetime(cal_merge['data']).dt.date
+    bool_cols = ['is_feriado', 'is_fim_de_semana', 'is_vespera_feriado', 'is_pos_feriado']
+    df_temp = pd.merge(df_temp, cal_merge[['data_fato_date'] + bool_cols], on='data_fato_date', how='left')
+    df_temp[bool_cols] = df_temp[bool_cols].fillna(False)
+
+    df_periodo = pd.DataFrame({'data': pd.date_range(start=data_inicial, end=data_final)})
+    df_periodo['data_fato_date'] = df_periodo['data'].dt.date
+    df_periodo = pd.merge(df_periodo, cal_merge[['data_fato_date'] + bool_cols], on='data_fato_date', how='left')
+    df_periodo[bool_cols] = df_periodo[bool_cols].fillna(False)
+
+    tot_feriado = df_periodo['is_feriado'].sum()
+    tot_vespera = df_periodo['is_vespera_feriado'].sum()
+    tot_pos = df_periodo['is_pos_feriado'].sum()
+    tot_fds = df_periodo['is_fim_de_semana'].sum()
+    tot_uteis = len(df_periodo[(~df_periodo['is_feriado']) & (~df_periodo['is_fim_de_semana']) & (~df_periodo['is_vespera_feriado']) & (~df_periodo['is_pos_feriado'])])
+
+    oc_feriado = df_temp['is_feriado'].sum()
+    oc_vespera = df_temp['is_vespera_feriado'].sum()
+    oc_pos = df_temp['is_pos_feriado'].sum()
+    oc_fds = df_temp['is_fim_de_semana'].sum()
+    oc_uteis = len(df_temp[(~df_temp['is_feriado']) & (~df_temp['is_fim_de_semana']) & (~df_temp['is_vespera_feriado']) & (~df_temp['is_pos_feriado'])])
+
+    medias = [
+        ('Dia Útil Comum', oc_uteis / tot_uteis if tot_uteis > 0 else 0),
+        ('Fim de Semana', oc_fds / tot_fds if tot_fds > 0 else 0),
+        ('Véspera Feriado', oc_vespera / tot_vespera if tot_vespera > 0 else 0),
+        ('Feriado', oc_feriado / tot_feriado if tot_feriado > 0 else 0),
+        ('Pós-Feriado', oc_pos / tot_pos if tot_pos > 0 else 0),
+    ]
+    medias.sort(key=lambda x: x[1], reverse=True)
+
+    tipos = [m[0] for m in medias]
+    vals = [m[1] for m in medias]
+    cores = [COLOR_BAR_ACCENT if i == 0 else COLOR_SECONDARY for i in range(len(vals))]
+
+    bars = ax.bar(tipos, vals, color=cores, width=0.55)
+    max_y = max(vals) if vals else 1
+    for bar in bars:
+        h = bar.get_height()
+        ax.annotate(f"{h:.1f}",
+                    xy=(bar.get_x() + bar.get_width() / 2, h),
+                    xytext=(0, 3), textcoords="offset points",
+                    ha='center', va='bottom', fontsize=7.5, fontweight='bold', color=COLOR_PRIMARY)
+    ax.set_ylim(0, max_y * 1.18)
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
+    ax.grid(axis='y', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_ylabel('Média Diária de Crimes', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_sazonal_feriados(df_geral, df_calendario):
+    """Página 6 - Gráfico 2: Ocorrências por Feriado Específico."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.6))
+    ax.set_facecolor('white')
+
+    if df_geral.empty or df_calendario.empty:
+        ax.text(0.5, 0.5, 'Dados de feriados não disponíveis', ha='center', va='center', fontsize=8)
+        return _fig_to_png_bytes(fig)
+
+    df_temp = df_geral.copy()
+    df_temp['data_fato_date'] = df_temp['data_fato'].dt.date
+    cal_merge = df_calendario.copy()
+    cal_merge['data_fato_date'] = pd.to_datetime(cal_merge['data']).dt.date
+    df_temp = pd.merge(df_temp, cal_merge[['data_fato_date', 'is_feriado', 'nome_feriado']], on='data_fato_date', how='left')
+
+    df_fer = df_temp[df_temp['is_feriado'] == True]
+    if df_fer.empty or 'nome_feriado' not in df_fer.columns:
+        ax.text(0.5, 0.5, 'Sem registros em feriados no período', ha='center', va='center', fontsize=8)
+        return _fig_to_png_bytes(fig)
+
+    contagem = df_fer['nome_feriado'].value_counts().head(7).iloc[::-1]
+    y_pos = range(len(contagem))
+    labels = [str(x)[:26] for x in contagem.index]
+    bars = ax.barh(y_pos, contagem.values, color=COLOR_PRIMARY, height=0.6)
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(labels, fontsize=7.5, color=COLOR_TEXT_PLOT)
+    max_x = contagem.max() if not contagem.empty else 1
+    for bar in bars:
+        w = bar.get_width()
+        ax.annotate(_fmt_br(w), xy=(w, bar.get_y() + bar.get_height() / 2),
+                    xytext=(4, 0), textcoords="offset points",
+                    ha='left', va='center', fontsize=7.0, fontweight='bold', color=COLOR_PRIMARY)
+    ax.set_xlim(0, max_x * 1.2)
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: _fmt_br(v)))
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
+    ax.grid(axis='x', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_xlabel('Total de Ocorrências Registradas', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_heatmap_sazonal(df_geral, df_calendario, data_inicial, data_final):
+    """Página 7 - Gráfico 1: Heatmap Sazonal (Dia da Semana × Mês)."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.6))
+    ax.set_facecolor('white')
+
+    df_periodo = pd.DataFrame({'data': pd.date_range(start=data_inicial, end=data_final)})
+    df_periodo['mes'] = df_periodo['data'].dt.month_name()
+    df_periodo['dia_semana'] = df_periodo['data'].dt.day_name()
+    dias_count = df_periodo.groupby(['mes', 'dia_semana']).size().reset_index(name='total_dias')
+
+    df_temp = df_geral.copy()
+    df_temp['mes'] = df_temp['data_fato'].dt.month_name()
+    df_temp['dia_semana'] = df_temp['data_fato'].dt.day_name()
+    crimes_count = df_temp.groupby(['mes', 'dia_semana']).size().reset_index(name='total_crimes')
+
+    df_hm = pd.merge(dias_count, crimes_count, on=['mes', 'dia_semana'], how='left').fillna({'total_crimes': 0})
+    df_hm['media'] = df_hm['total_crimes'] / df_hm['total_dias']
+
+    piv = df_hm.pivot_table(index='mes', columns='dia_semana', values='media').fillna(0)
+    meses_en = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    meses_pt = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+    dias_en = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    dias_pt = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
+
+    piv = piv.reindex(index=meses_en, columns=dias_en, fill_value=0)
+    data_mat = piv.values
+
+    im = ax.imshow(data_mat, cmap='Purples', aspect='auto')
+    ax.set_xticks(range(7))
+    ax.set_xticklabels(dias_pt, fontsize=7.5, color=COLOR_TEXT_PLOT)
+    ax.set_yticks(range(12))
+    ax.set_yticklabels(meses_pt, fontsize=7.0, color=COLOR_TEXT_PLOT)
+
+    for i in range(12):
+        for j in range(7):
+            val = data_mat[i, j]
+            cor_txt = 'white' if val > data_mat.max() * 0.65 else COLOR_TEXT_PLOT
+            ax.text(j, i, f"{val:.0f}", ha='center', va='center', fontsize=6.5, color=cor_txt, fontweight='bold')
+
+    cbar = fig.colorbar(im, ax=ax, shrink=0.8, pad=0.03)
+    cbar.ax.tick_params(labelsize=6.5)
+    cbar.set_label('Média Diária', fontsize=7, color=COLOR_PRIMARY, fontweight='bold')
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_heatmap_vulnerabilidade(df_geral):
+    """Página 7 - Gráfico 2: Heatmap de Vulnerabilidade (Crime × Idade)."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.6))
+    ax.set_facecolor('white')
+
+    df_vuln = df_geral.dropna(subset=['idade_vitima']).copy()
+    bins = [0, 12, 17, 29, 40, 50, 60, 70, 79, 120]
+    labels = ['0-12', '13-17', '18-29', '30-40', '41-50', '51-60', '61-70', '71-79', '80+']
+    df_vuln['faixa_etaria'] = pd.cut(df_vuln['idade_vitima'], bins=bins, labels=labels, right=True)
+
+    top_crimes = df_vuln['fato_comunicado'].value_counts().head(6).index
+    df_sub = df_vuln[df_vuln['fato_comunicado'].isin(top_crimes)]
+    piv = df_sub.groupby(['fato_comunicado', 'faixa_etaria'], observed=False).size().unstack(fill_value=0)
+
+    data_mat = piv.values
+    im = ax.imshow(data_mat, cmap='BuPu', aspect='auto')
+    ax.set_xticks(range(len(labels)))
+    ax.set_xticklabels(labels, fontsize=7.5, color=COLOR_TEXT_PLOT)
+    crimes_lbl = [str(x)[:22] for x in piv.index]
+    ax.set_yticks(range(len(crimes_lbl)))
+    ax.set_yticklabels(crimes_lbl, fontsize=7.0, color=COLOR_TEXT_PLOT)
+
+    for i in range(len(crimes_lbl)):
+        for j in range(len(labels)):
+            val = data_mat[i, j]
+            cor_txt = 'white' if val > data_mat.max() * 0.6 else COLOR_TEXT_PLOT
+            ax.text(j, i, _fmt_br(val), ha='center', va='center', fontsize=6.2, color=cor_txt, fontweight='bold')
+
+    cbar = fig.colorbar(im, ax=ax, shrink=0.8, pad=0.03)
+    cbar.ax.tick_params(labelsize=6.5)
+    cbar.set_label('Total Registros', fontsize=7, color=COLOR_PRIMARY, fontweight='bold')
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_efetividade_denuncia(df_geral, df_populacao):
+    """Página 8: Índice de Efetividade da Denúncia (Scatter Plot com Regressão)."""
+    fig, ax = plt.subplots(figsize=(9.2, 4.4))
+    ax.set_facecolor('white')
+
+    crimes_leves = ["Ameaça", "Vias de fato"]
+    crimes_graves = ["Lesão corporal leve - Dolosa", "Lesão corporal grave ou gravíssima - Dolosa", "Estupro", "Feminicídio"]
+
+    df_leves = df_geral[df_geral['fato_comunicado'].isin(crimes_leves)]
+    c_leves = df_leves.groupby('municipio_normalizado', observed=True).size().reset_index(name='leves')
+    df_graves = df_geral[df_geral['fato_comunicado'].isin(crimes_graves)]
+    c_graves = df_graves.groupby('municipio_normalizado', observed=True).size().reset_index(name='graves')
+    df_efet = pd.merge(c_leves, c_graves, on='municipio_normalizado', how='outer')
+    df_efet[['leves', 'graves']] = df_efet[['leves', 'graves']].fillna(0)
+    df_efet = pd.merge(df_efet, df_populacao[['municipio_normalizado', 'populacao_feminina']], on='municipio_normalizado', how='left')
+    df_efet = df_efet[df_efet['populacao_feminina'] > 500]
+
+    anos_n = max(1, len(df_geral['ano'].unique()))
+    df_efet['tx_leves'] = (df_efet['leves'] / anos_n / df_efet['populacao_feminina']) * 1000
+    df_efet['tx_graves'] = (df_efet['graves'] / anos_n / df_efet['populacao_feminina']) * 1000
+
+    x = df_efet['tx_leves'].values
+    y = df_efet['tx_graves'].values
+
+    ax.scatter(x, y, color=COLOR_SECONDARY, alpha=0.55, edgecolors=COLOR_PRIMARY, s=32, label='Municípios Catarinenses')
+
+    if len(x) > 2:
+        m, b = np.polyfit(x, y, 1)
+        r = np.corrcoef(x, y)[0, 1]
+        x_line = np.linspace(x.min(), x.max(), 100)
+        ax.plot(x_line, m * x_line + b, color='#D32F2F', linestyle='--', linewidth=1.8, label=f'Linha de Tendência OLS (r = {r:+.2f})')
+
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
+    ax.grid(True, linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_xlabel('Taxa de Crimes Leves / 1.000 Mulheres (Ameaça, Vias de Fato)', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
+    ax.set_ylabel('Taxa de Crimes Graves / 1.000 Mulheres (Lesão, Feminicídio)', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
+    ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=7.5, loc='upper left')
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_tempo_relacionamento(df_feminicidio):
+    """Página 14 - Gráfico 1: Tempo de Relacionamento."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.6))
+    ax.set_facecolor('white')
+
+    if 'tempo_relacionamento' not in df_feminicidio.columns or df_feminicidio['tempo_relacionamento'].dropna().empty:
+        ax.text(0.5, 0.5, 'Dados de tempo de relacionamento não disponíveis', ha='center', va='center', fontsize=8)
+        return _fig_to_png_bytes(fig)
+
+    contagem = df_feminicidio['tempo_relacionamento'].value_counts().head(6).iloc[::-1]
+    y_pos = range(len(contagem))
+    labels = [str(x)[:26] for x in contagem.index]
+    bars = ax.barh(y_pos, contagem.values, color='#AD1457', height=0.6)
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(labels, fontsize=7.5, color=COLOR_TEXT_PLOT)
+    max_x = contagem.max() if not contagem.empty else 1
+    for bar in bars:
+        w = bar.get_width()
+        ax.annotate(str(int(w)), xy=(w, bar.get_y() + bar.get_height() / 2),
+                    xytext=(4, 0), textcoords="offset points",
+                    ha='left', va='center', fontsize=7.5, fontweight='bold', color='#880E4F')
+    ax.set_xlim(0, max_x * 1.2)
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
+    ax.grid(axis='x', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_xlabel('Quantidade de Casos', fontsize=8, fontweight='bold', color='#880E4F')
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_tipo_local(df_feminicidio):
+    """Página 14 - Gráfico 2: Tipo de Local da Ocorrência."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.6))
+    ax.set_facecolor('white')
+
+    col = 'tipo_local' if 'tipo_local' in df_feminicidio.columns else 'localidade'
+    if col not in df_feminicidio.columns or df_feminicidio[col].dropna().empty:
+        ax.text(0.5, 0.5, 'Dados de tipo de local não disponíveis', ha='center', va='center', fontsize=8)
+        return _fig_to_png_bytes(fig)
+
+    contagem = df_feminicidio[col].value_counts().head(6).iloc[::-1]
+    y_pos = range(len(contagem))
+    labels = [str(x)[:26] for x in contagem.index]
+    bars = ax.barh(y_pos, contagem.values, color='#880E4F', height=0.6)
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(labels, fontsize=7.5, color=COLOR_TEXT_PLOT)
+    max_x = contagem.max() if not contagem.empty else 1
+    for bar in bars:
+        w = bar.get_width()
+        ax.annotate(str(int(w)), xy=(w, bar.get_y() + bar.get_height() / 2),
+                    xytext=(4, 0), textcoords="offset points",
+                    ha='left', va='center', fontsize=7.5, fontweight='bold', color='#880E4F')
+    ax.set_xlim(0, max_x * 1.2)
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
+    ax.grid(axis='x', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_xlabel('Quantidade de Casos', fontsize=8, fontweight='bold', color='#880E4F')
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_perfil_racial(df_feminicidio):
+    """Página 15 - Gráfico 2: Perfil Étnico-Racial Comparativo."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.6))
+    ax.set_facecolor('white')
+
+    if 'etnia_vitima' not in df_feminicidio.columns or 'etnia_autor' not in df_feminicidio.columns:
+        ax.text(0.5, 0.5, 'Dados de etnia não disponíveis', ha='center', va='center', fontsize=8)
+        return _fig_to_png_bytes(fig)
+
+    v_raca = df_feminicidio['etnia_vitima'].value_counts()
+    a_raca = df_feminicidio['etnia_autor'].value_counts()
+    racas = sorted(list(set(v_raca.index).union(set(a_raca.index))))
+
+    x = np.arange(len(racas))
+    w = 0.35
+
+    v_vals = [v_raca.get(r, 0) for r in racas]
+    a_vals = [a_raca.get(r, 0) for r in racas]
+
+    ax.bar(x - w/2, v_vals, width=w, label='Vítima', color='#C2185B')
+    ax.bar(x + w/2, a_vals, width=w, label='Autor', color='#4A148C')
+
+    max_y = max(max(v_vals, default=0), max(a_vals, default=0))
+    ax.set_ylim(0, max(max_y * 1.2, 1))
+    ax.set_xticks(x)
+    ax.set_xticklabels([str(r)[:15] for r in racas], fontsize=7.5, color=COLOR_TEXT_PLOT)
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
+    ax.grid(axis='y', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_ylabel('Total de Pessoas', fontsize=8, fontweight='bold', color='#880E4F')
+    ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=7.5)
+
+    return _fig_to_png_bytes(fig)
+
+
+def render_chart_historico_penal_completo(df_feminicidio):
+    """Página 15 - Gráfico 1: Fatores de Risco e Situação Penal do Agressor."""
+    fig, ax = plt.subplots(figsize=(9.0, 3.6))
+    ax.set_facecolor('white')
+
+    total = len(df_feminicidio)
+    if total == 0:
+        ax.text(0.5, 0.5, 'Sem dados de feminicídios', ha='center', va='center', fontsize=8)
+        return _fig_to_png_bytes(fig)
+
+    pass_geral = df_feminicidio['passagem_policial'].astype(str).str.upper().eq('SIM').sum() if 'passagem_policial' in df_feminicidio.columns else 0
+    pass_vd = df_feminicidio['passagem_por_violencia_domestica'].astype(str).str.upper().eq('SIM').sum() if 'passagem_por_violencia_domestica' in df_feminicidio.columns else 0
+    bo_ant = df_feminicidio['bo_de_vd_contra_o_autor'].astype(str).str.upper().eq('SIM').sum() if 'bo_de_vd_contra_o_autor' in df_feminicidio.columns else 0
+    preso = df_feminicidio['autor_preso'].astype(str).str.upper().eq('SIM').sum() if 'autor_preso' in df_feminicidio.columns else 0
+
+    labels = ['Passagem Policial Geral', 'Passagem por Violência Dom.', 'Vítima c/ BO Anterior', 'Autor Foi Preso']
+    counts = [pass_geral, pass_vd, bo_ant, preso]
+    pcts = [(c / total * 100) for c in counts]
+
+    cores = ['#8E24AA', '#C2185B', '#D81B60', '#4A148C']
+    bars = ax.bar(labels, pcts, color=cores, width=0.5)
+    for i, bar in enumerate(bars):
+        h = bar.get_height()
+        ax.annotate(f"{counts[i]} ({h:.1f}%)",
+                    xy=(bar.get_x() + bar.get_width() / 2, h),
+                    xytext=(0, 3), textcoords="offset points",
+                    ha='center', va='bottom', fontsize=7.5, fontweight='bold', color='#4A148C')
+    ax.set_ylim(0, 115)
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
+    ax.grid(axis='y', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#BDBDBD')
+    ax.spines['bottom'].set_color('#BDBDBD')
+    ax.set_ylabel('% do Total de Feminicídios', fontsize=8, fontweight='bold', color='#880E4F')
+
+    return _fig_to_png_bytes(fig)
+
+
 def _fig_to_image(fig, width=900, height=450):
     """Converte uma figura Plotly em bytes PNG com fallback resiliente."""
     if fig is None:
@@ -1311,13 +1693,78 @@ def gerar_relatorio_pdf(
         add_two_images(pdf, img_fato, img_vuln, title1="Fatos Comunicados Mais Frequentes", title2="Composição Percentual de Crimes por Faixa Etária", max_h=92)
 
     # =========================================================================
-    # PÁGINA 6: TABELA CONSOLIDADA DE OCORRÊNCIAS
+    # PÁGINA 6: O CALENDÁRIO DO RISCO — SAZONALIDADE E FERIADOS
+    # =========================================================================
+    pdf.add_page()
+    add_section_header(
+        pdf,
+        "O Calendário do Risco — Sazonalidade e Feriados",
+        "Média diária de crimes por categoria de dia e concentração de ocorrências nos feriados"
+    )
+    if not df_geral.empty and not df_calendario.empty:
+        img_tipo_dia = render_chart_sazonal_tipo_dia(df_geral, df_calendario, data_inicial, data_final)
+        img_feriados = render_chart_sazonal_feriados(df_geral, df_calendario)
+        add_two_images(
+            pdf,
+            img_tipo_dia,
+            img_feriados,
+            title1="Média Diária de Ocorrências por Categoria de Dia",
+            title2="Ocorrências Registradas nos Principais Feriados",
+            max_h=92
+        )
+
+    # =========================================================================
+    # PÁGINA 7: MATRIZES DE RISCO — HEATMAPS DE SAZONALIDADE E VULNERABILIDADE
+    # =========================================================================
+    pdf.add_page()
+    add_section_header(
+        pdf,
+        "Matrizes de Risco — Sazonalidade e Vulnerabilidade",
+        "Padrão de calor temporal (Dia da Semana x Mês) e cruzamento de tipologias por idade"
+    )
+    if not df_geral.empty:
+        img_hm_sazonal = render_chart_heatmap_sazonal(df_geral, df_calendario, data_inicial, data_final)
+        img_hm_vuln = render_chart_heatmap_vulnerabilidade(df_geral)
+        add_two_images(
+            pdf,
+            img_hm_sazonal,
+            img_hm_vuln,
+            title1="Média Diária de Ocorrências: Dia da Semana vs. Mês",
+            title2="Concentração de Ocorrências: Tipo de Crime vs. Faixa Etária",
+            max_h=92
+        )
+
+    # =========================================================================
+    # PÁGINA 8: ÍNDICE DE EFETIVIDADE DA DENÚNCIA
+    # =========================================================================
+    pdf.add_page()
+    add_section_header(
+        pdf,
+        "Índice de Efetividade da Denúncia",
+        "Correlação entre denúncias prévias de crimes leves e incidência de crimes graves"
+    )
+    if not df_geral.empty and not df_populacao.empty:
+        pdf.set_font(pdf.font_family_name, '', 7.6)
+        pdf.set_text_color(*CINZA_TEXTO)
+        pdf.multi_cell(
+            190, 4.0,
+            "Esta análise investiga se, nos municípios catarinenses, uma maior taxa de denúncias de menor potencial ofensivo "
+            "(como Ameaça e Vias de Fato) está correlacionada a uma redução de crimes graves (como Lesão Corporal Dolosa e Feminicídio). "
+            "Uma correlação inversa indica efetividade protetiva na fase inicial; municípios acima da reta demandam reforço nas medidas de contenção."
+        )
+        pdf.ln(2)
+
+        img_efetividade = render_chart_efetividade_denuncia(df_geral, df_populacao)
+        add_image_box(pdf, img_efetividade, w=190, max_h=165)
+
+    # =========================================================================
+    # PÁGINA 9: TABELA CONSOLIDADA DE OCORRÊNCIAS
     # =========================================================================
     pdf.add_page()
     add_section_header(
         pdf,
         "Tabela Consolidada de Ocorrências",
-        "Histórico anual por tipologia penal e evolução temporal"
+        "Histórico anual por tipologia penal, evolução percentual e tendência de longo prazo"
     )
     if not df_geral.empty:
         if agrupamento != "Consolidado":
@@ -1331,13 +1778,13 @@ def gerar_relatorio_pdf(
             add_table(pdf, tabela_cons, max_rows=40)
 
     # =========================================================================
-    # PÁGINA 7: TAXA POPULACIONAL
+    # PÁGINA 10: TAXA POPULACIONAL
     # =========================================================================
     pdf.add_page()
     add_section_header(
         pdf,
         "Taxa de Ocorrências por População Feminina",
-        "Indicadores proporcionais por 1.000 habitantes mulheres"
+        "Indicadores demográficos padronizados por 1.000 habitantes mulheres"
     )
     if not df_geral.empty and not df_populacao.empty:
         anos_no_filtro = df_geral['ano'].unique()
@@ -1347,7 +1794,7 @@ def gerar_relatorio_pdf(
             add_table(pdf, tabela_pop.reset_index(), max_rows=35)
 
     # =========================================================================
-    # PÁGINA 8: RESUMO EXECUTIVO - FEMINICÍDIOS
+    # PÁGINA 11: RESUMO EXECUTIVO - FEMINICÍDIOS
     # =========================================================================
     pdf.add_page()
     add_section_header(
@@ -1392,7 +1839,7 @@ def gerar_relatorio_pdf(
         pdf.cell(0, 10, 'Nenhum registro de feminicídio encontrado para os filtros selecionados.', ln=True)
 
     # =========================================================================
-    # PÁGINA 9: EVOLUÇÃO TEMPORAL DE FEMINICÍDIOS
+    # PÁGINA 12: EVOLUÇÃO TEMPORAL DE FEMINICÍDIOS
     # =========================================================================
     if total_fem > 0:
         pdf.add_page()
@@ -1432,14 +1879,14 @@ def gerar_relatorio_pdf(
         add_two_images(pdf, img_fem_serie, img_fem_ano, title1="Série Temporal de Feminicídios", title2="Feminicídios por Ano", max_h=92)
 
     # =========================================================================
-    # PÁGINA 10: PERFIL DO FEMINICÍDIO (VÍNCULO, MEIO, AUTOR)
+    # PÁGINA 13: PERFIL DO FEMINICÍDIO (VÍNCULO E MEIO)
     # =========================================================================
     if total_fem > 0:
         pdf.add_page()
         add_section_header(
             pdf,
-            "Perfil do Feminicídio — Relação, Meio e Autor",
-            "Vínculo da vítima com o agressor, instrumento utilizado e situação penal"
+            "Perfil do Feminicídio — Relação e Meio Empregado",
+            "Vínculo da vítima com o agressor e instrumentos letais utilizados"
         )
         if agrupamento == "Consolidado":
             vinculo = df_feminicidio['relacao_autor'].value_counts().reset_index()
@@ -1468,14 +1915,56 @@ def gerar_relatorio_pdf(
         add_two_images(pdf, img_vinculo, img_meio, title1="Vínculo / Relação da Vítima com o Autor", title2="Meio Empregado no Feminicídio", max_h=92)
 
     # =========================================================================
-    # PÁGINA 11: TABELA CONSOLIDADA DE FEMINICÍDIOS
+    # PÁGINA 14: CONTEXTO DO RELACIONAMENTO, FILHOS E LOCAL DO CRIME
+    # =========================================================================
+    if total_fem > 0:
+        pdf.add_page()
+        add_section_header(
+            pdf,
+            "Contexto Familiar e Circunstâncias do Feminicídio",
+            "Duração do relacionamento do casal e tipo de local da ocorrência"
+        )
+        img_tempo_rel = render_chart_tempo_relacionamento(df_feminicidio)
+        img_tipo_local = render_chart_tipo_local(df_feminicidio)
+        add_two_images(
+            pdf,
+            img_tempo_rel,
+            img_tipo_local,
+            title1="Tempo de Relacionamento do Casal",
+            title2="Tipo de Local da Ocorrência (Residência, Rua, etc.)",
+            max_h=92
+        )
+
+    # =========================================================================
+    # PÁGINA 15: RAIO-X DO AGRESSOR, PERFIL RACIAL E HISTÓRICO PENAL
+    # =========================================================================
+    if total_fem > 0:
+        pdf.add_page()
+        add_section_header(
+            pdf,
+            "Raio-X do Agressor, Perfil Racial e Histórico Penal",
+            "Fatores de risco penal, perfil étnico-racial comparativo e situação de custódia"
+        )
+        img_hist_penal = render_chart_historico_penal_completo(df_feminicidio)
+        img_racial = render_chart_perfil_racial(df_feminicidio)
+        add_two_images(
+            pdf,
+            img_hist_penal,
+            img_racial,
+            title1="Fatores de Risco e Situação Penal do Agressor",
+            title2="Perfil Étnico-Racial: Vítima vs. Autor",
+            max_h=92
+        )
+
+    # =========================================================================
+    # PÁGINA 16: TABELA CONSOLIDADA DE FEMINICÍDIOS
     # =========================================================================
     if total_fem > 0:
         pdf.add_page()
         add_section_header(
             pdf,
             "Tabela Consolidada de Feminicídios",
-            "Detalhamento anual de ocorrências consumadas"
+            "Detalhamento anual de ocorrências consumadas e evolução temporal"
         )
         if agrupamento != "Consolidado":
             mapa_agrup = {"Município": "municipio", "Mesorregião": "mesoregiao", "Associação": "associacao", "Associação de Municípios": "associacao"}
@@ -1488,7 +1977,7 @@ def gerar_relatorio_pdf(
             add_table(pdf, tabela_fem, max_rows=35)
 
     # =========================================================================
-    # PÁGINA 12: ÍNDICE DE LETALIDADE
+    # PÁGINA 17: ÍNDICE DE LETALIDADE
     # =========================================================================
     if not df_geral.empty and not df_feminicidio.empty:
         pdf.add_page()
@@ -1517,6 +2006,84 @@ def gerar_relatorio_pdf(
                 'indice_letalidade': 'Índice de Letalidade (%)'
             })
             add_table(pdf, df_ranking, max_rows=20, title=f"Ranking de Letalidade por {agrup_let}")
+
+    # =========================================================================
+    # PÁGINA 18: METODOLOGIA, MARCO LEGAL E GLOSSÁRIO OFICIAL
+    # =========================================================================
+    pdf.add_page()
+    add_section_header(
+        pdf,
+        "Metodologia, Marco Legal e Glossário Oficial",
+        "Fundamentação jurídica, conceitos técnicos, fórmulas e governança de dados"
+    )
+
+    # Bloco 1: Marco Legal
+    pdf.set_fill_color(*ROXO_BG)
+    pdf.set_draw_color(*ROXO_CLARO)
+    pdf.set_line_width(0.3)
+    y_b1 = pdf.get_y()
+    pdf.rect(10, y_b1, 190, 46, 'DF')
+    pdf.set_xy(12, y_b1 + 2.5)
+    pdf.set_font(pdf.font_family_name, 'B', 8.5)
+    pdf.set_text_color(*ROXO_ESCURO)
+    pdf.cell(0, 4.0, "1. MARCO LEGAL DA PROTEÇÃO À MULHER", ln=True)
+    pdf.ln(1)
+
+    pdf.set_font(pdf.font_family_name, '', 7.0)
+    pdf.set_text_color(*CINZA_TEXTO)
+    pdf.set_x(12)
+    pdf.multi_cell(
+        186, 3.5,
+        "- Lei Maria da Penha (Lei nº 11.340/2006): Mecanismo legal para coibir e prevenir a violência doméstica e familiar contra a mulher, tipificando 5 formas: física, psicológica, sexual, patrimonial e moral.\n"
+        "- Lei do Feminicídio (Lei nº 13.104/2015 e Lei nº 14.994/2024): Tipifica e qualifica o feminicídio como crime hediondo quando cometido contra a mulher por razões da condição de sexo feminino (violência doméstica/familiar ou menosprezo à condição de mulher).\n"
+        "- Medidas Protetivas de Urgência (MPUs): Ordens judiciais imediatas de afastamento do agressor e salvaguarda da vítima."
+    )
+
+    # Bloco 2: Conceitos Técnicos e Fórmulas
+    pdf.set_y(y_b1 + 49)
+    y_b2 = pdf.get_y()
+    pdf.set_fill_color(255, 255, 255)
+    pdf.set_draw_color(*ROXO_BORDER)
+    pdf.rect(10, y_b2, 190, 56, 'DF')
+    pdf.set_xy(12, y_b2 + 2.5)
+    pdf.set_font(pdf.font_family_name, 'B', 8.5)
+    pdf.set_text_color(*ROXO_ESCURO)
+    pdf.cell(0, 4.0, "2. CONCEITOS TÉCNICOS E FÓRMULAS ESTATÍSTICAS", ln=True)
+    pdf.ln(1)
+
+    pdf.set_font(pdf.font_family_name, '', 7.0)
+    pdf.set_text_color(*CINZA_TEXTO)
+    pdf.set_x(12)
+    pdf.multi_cell(
+        186, 3.5,
+        "- Fatos por Mil Mulheres (Taxa Demográfica Anual): [(Média Anual de Fatos / População Feminina)] * 1.000. Ajusta os números pela densidade populacional, permitindo comparação justa entre municípios de portes distintos.\n"
+        "- % de Mulheres Vítimas (anual): [(Média Anual de Fatos / População Feminina)] * 100. Expressa a taxa percentual de mulheres vítimas na localidade.\n"
+        "- Índice de Letalidade (%): [Total de Feminicídios / (Total de Ocorrências + Total de Feminicídios)] * 100. Mensura a proporção de desfechos fatais no universo de crimes reportados.\n"
+        "- Tendência Anual (% a.a.): Estimada por Regressão Linear Ordinária sobre a série mensal completa, calculando a inclinação percentual anual sem expurgo de dados pontuais.\n"
+        "- Diferença Anual (%): [(Valor Ano Atual - Valor Ano Anterior) / Valor Ano Anterior] * 100. Variação percentual ano a ano."
+    )
+
+    # Bloco 3: Fontes de Dados e Transparência
+    pdf.set_y(y_b2 + 59)
+    y_b3 = pdf.get_y()
+    pdf.set_fill_color(*CINZA_BG)
+    pdf.set_draw_color(*CINZA_LINHA)
+    pdf.rect(10, y_b3, 190, 40, 'DF')
+    pdf.set_xy(12, y_b3 + 2.5)
+    pdf.set_font(pdf.font_family_name, 'B', 8.5)
+    pdf.set_text_color(*ROXO_MEDIO)
+    pdf.cell(0, 4.0, "3. FONTES DE DADOS, GOVERNANÇA E SUBNOTIFICAÇÃO", ln=True)
+    pdf.ln(1)
+
+    pdf.set_font(pdf.font_family_name, '', 7.0)
+    pdf.set_text_color(*CINZA_TEXTO)
+    pdf.set_x(12)
+    pdf.multi_cell(
+        186, 3.5,
+        "- Fontes Primárias Oficiais: Gerência de Estatística e Análise Criminal da Secretaria de Estado da Segurança Pública (GEAC / DINE / SSP-SC) e estimativas populacionais do IBGE.\n"
+        "- Parceria Institucional: Observatório da Violência Contra a Mulher de Santa Catarina (OVM/SC) em cooperação com o Ministério Público de Contas de Santa Catarina (MPC/SC).\n"
+        "- Nota sobre Subnotificação: Os dados registram exclusivamente os fatos formalizados perante as autoridades policiais. Crimes de violência doméstica possuem histórico de cifra oculta, expressando a ponta atendida pelo Estado."
+    )
 
     # Exporta para bytes
     pdf_bytes = bytes(pdf.output())
