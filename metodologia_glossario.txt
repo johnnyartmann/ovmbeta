@@ -1,0 +1,194 @@
+# Metodologia e Glossário do Observatório
+
+## Missão e Objetivo do Painel
+
+Este painel é uma iniciativa do **Observatório da Violência Contra a Mulher (OVM/SC)**, em colaboração com o **Ministério Público de Contas de Santa Catarina (MPC/SC)**, para transformar dados em conhecimento acionável. Nosso objetivo é fornecer a gestores públicos, pesquisadores, jornalistas e à sociedade civil uma ferramenta transparente, interativa e detalhada para monitorar, analisar e compreender as múltiplas facetas da violência contra a mulher em Santa Catarina.
+
+Acreditamos que o acesso facilitado a dados qualificados é um passo fundamental para o desenvolvimento de políticas públicas mais eficazes, para a alocação estratégica de recursos e para a promoção de um debate público informado que vise a prevenção da violência e a proteção das vítimas.
+
+---
+
+## Metodologia Aplicada
+
+A robustez das análises apresentadas depende de um tratamento de dados rigoroso e de uma metodologia transparente. Detalhamos nosso processo abaixo.
+
+### 1. Fontes, Tratamento e Integração dos Dados
+
+O painel é construído a partir da integração de múltiplas fontes de dados, seguindo um fluxo de trabalho padronizado:
+
+*   **Fonte Primária:** Os dados brutos sobre ocorrências criminais são fornecidos pela **Gerência de Estatística e Análise Criminal da Secretaria de Estado da Segurança Pública (GEAC | DINE | SSP | SC)**. Agradecemos a parceria e a confiança na disponibilização destas informações vitais.
+
+*   **Consolidação das Bases de Dados:** Utilizamos um conjunto de arquivos que se complementam:
+    *   `base_geral.xlsx`: O registro principal de ocorrências de violência doméstica e familiar (Lei Maria da Penha), excluindo os feminicídios, que são tratados em base específica.
+    *   `base_feminicidio.xlsx`: Uma base de dados detalhada e dedicada exclusivamente aos casos de feminicídio consumado, contendo informações sobre a vítima, o autor e as circunstâncias do crime.
+    *   `base_populacao.xlsx`: Dados demográficos da população feminina por município, essenciais para o cálculo de taxas que permitem comparações justas entre localidades de diferentes portes.
+    *   `base_regioes_associacoes.xlsx`: Arquivo que mapeia cada município catarinense à sua respectiva Mesorregião e Associação de Municípios.
+    *   `municipios_sc.json`: Arquivo técnico (GeoJSON) que contém as "formas" geográficas de cada município, sendo a base para a renderização de todos os mapas coropléticos.
+    *   `base_calendario_feriados.xlsx`: Mapeia feriados nacionais e locais, fins de semana e outras datas especiais para a Análise Sazonal.
+
+*   **Normalização e Enriquecimento:** Para garantir a precisão ao cruzar informações, aplicamos um processo rigoroso:
+    1.  **Padronização de Nomes:** Os nomes dos municípios são "normalizados" – convertidos para um formato único (maiúsculas, sem acentos ou pontuação) – para garantir a correspondência perfeita entre todas as bases de dados.
+    2.  **Unificação:** Os dados da `base_geral` e `base_feminicidio` são unificados para permitir análises conjuntas, como o Índice de Letalidade.
+    3.  **Enriquecimento:** Cada registro de crime é enriquecido com as informações de sua respectiva mesorregião, associação de municípios e população, criando um conjunto de dados coeso e pronto para análise.
+
+### 2. Limitações e Considerações Importantes
+
+> **A transparência exige o reconhecimento das limitações dos dados.**
+*   **Subnotificação:** Os números apresentados refletem **apenas os casos que foram oficialmente registrados** pelas autoridades policiais. É sabido que a violência contra a mulher, especialmente a doméstica, sofre com altos índices de subnotificação. Portanto, os dados representam uma "ponta do iceberg" da realidade.
+*   **Tipificação Criminal:** A classificação de um "fato comunicado" pode ser alterada ao longo da investigação policial e do processo judicial. Os dados refletem a tipificação no momento do registro.
+*   **Dados do Ano Corrente:** Os dados do ano atual são marcados como **"(Parcial)"** e são atualizados continuamente, podendo sofrer alterações à medida que novos registros são consolidados.
+
+### 3. Análises Avançadas: Indo Além das Contagens
+
+Para extrair insights mais profundos, o painel utiliza métricas e modelos analíticos avançados.
+
+*   **🎯 Tendência Anual (Regressão Linear Mensal)**
+    *   **Pergunta-Chave:** Qual é a tendência de crescimento ou queda de um tipo de crime no longo prazo, considerando todos os meses do período?
+    *   **O que é?** Uma taxa percentual anual calculada por regressão linear sobre a contagem mensal de ocorrências. A regressão ajusta uma reta de tendência que passa por todos os meses, sem excluir nenhum dado, e converte a inclinação dessa reta para uma variação percentual anual.
+    *   **Como Interpretar?** Um valor positivo (ex: +5,2% ao ano) indica uma tendência de crescimento. Um valor negativo (ex: -3,1% ao ano) indica uma tendência de redução. Por utilizar todos os meses do período, é mais robusta do que métricas que dependem apenas do primeiro e último ponto de dados.
+
+*   **🎯 Índice de Letalidade da Violência**
+    *   **Pergunta-Chave:** Em uma localidade, qual a proporção de todos os atos de violência reportados que culminam no resultado mais extremo, o feminicídio?
+    *   **O que é?** Mede a "periculosidade" do ciclo de violência em um local.
+    *   **Como Interpretar?** Um município pode ter poucas ocorrências, mas um alto índice de letalidade, o que é um sinal gravíssimo de falha na rede de proteção. Ele aponta onde a violência, uma vez iniciada, tem maior probabilidade de se tornar fatal.
+
+*   **🎯 Análise de Vulnerabilidade (Faixa Etária vs. Tipo de Crime)**
+    *   **Pergunta-Chave:** O tipo de violência sofrida pela mulher muda conforme sua idade?
+    *   **O que é?** Uma análise que segmenta as vítimas por faixa etária para entender a prevalência de cada tipo de crime em diferentes fases da vida.
+    *   **Como Interpretar?** Permite identificar, por exemplo, se a violência psicológica (ameaça) é mais comum entre jovens, enquanto a violência física grave se concentra em outras idades, possibilitando campanhas de prevenção muito mais direcionadas.
+
+*   **🎯 Índice de Efetividade da Denúncia**
+    *   **Pergunta-Chave:** A denúncia de crimes "leves" (como ameaça e vias de fato) está ajudando a prevenir a ocorrência de crimes "graves" (como lesão corporal e feminicídio)?
+    *   **O que é?** Uma análise de correlação entre as taxas de crimes de diferentes gravidades por município.
+    *   **Como Interpretar?** Uma correlação negativa (mais denúncias leves, menos crimes graves) sugere que a rede de proteção está agindo de forma eficaz após a primeira denúncia. Uma correlação positiva pode indicar que o sistema está apenas registrando, mas não conseguindo impedir a escalada da violência.
+
+*   **🎯 Análise Sazonal**
+    *   **Pergunta-Chave:** Existem períodos do ano, mês ou semana em que a violência contra a mulher aumenta de forma previsível?
+    *   **O que é?** Analisa a média de ocorrências em feriados, fins de semana, vésperas e dias comuns.
+    *   **Como Interpretar?** Identifica "gatilhos" temporais (como o aumento da convivência em feriados) que podem estar ligados ao aumento da violência, permitindo um planejamento proativo de patrulhas e campanhas de conscientização.
+
+---
+
+## Glossário
+
+### Atores e Entidades
+
+*   **OVM/SC (Observatório da Violência Contra a Mulher de Santa Catarina):** Entidade responsável pela coleta, análise e divulgação de informações sobre a violência de gênero no estado, visando subsidiar políticas públicas.
+*   **MPC/SC (Ministério Público de Contas de Santa Catarina):** Órgão de controle externo que fiscaliza a correta aplicação dos recursos públicos, atuando aqui em parceria para garantir a qualidade e a utilidade pública da análise de dados.
+*   **SSP/SC (Secretaria de Estado da Segurança Pública de Santa Catarina):** Órgão do governo estadual responsável pela gestão da segurança e pela produção dos dados criminais primários.
+
+### Termos Geográficos e Administrativos
+
+*   **Mesorregião:** Divisão do território catarinense definida pelo IBGE, agrupando municípios com características socioeconômicas similares. As mesorregiões são: Grande Florianópolis, Norte Catarinense, Oeste Catarinense, Serrano, Sul Catarinense e Vale do Itajaí.
+*   **Associação de Municípios:** Consórcios formados por municípios vizinhos para otimizar recursos e buscar soluções conjuntas para problemas regionais. Ex: AMAUC, AMFRI, AMOSC.
+
+### Métricas do Painel
+
+*   **Fato Comunicado:** A descrição inicial do tipo de crime conforme registrado no Boletim de Ocorrência.
+*   **Fatos por Mil Mulheres (anual):** Uma taxa que ajusta o número de ocorrências pela população feminina do local. É a melhor métrica para comparar o risco entre municípios de tamanhos diferentes. `Cálculo: ((Total de Fatos / Nº de Anos) / População Feminina) * 1000`.
+*   **% de Mulheres Vítimas (anual):** A porcentagem da população feminina de um local que foi vítima de violência (registrada) em média, a cada ano. `Cálculo: ((Total de Fatos / Nº de Anos) / População Feminina) * 100`.
+
+### Tipologias Criminais (Base Legal e Contexto)
+
+A violência contra a mulher é um fenômeno complexo, manifestando-se através de diversas condutas criminosas. Compreender a definição de cada uma é fundamental para identificar a gravidade e a natureza do abuso. Abaixo, detalhamos os principais tipos penais registrados no painel.
+
+---
+
+#### <u>CRIMES CONTRA A VIDA</u>
+
+*   **Feminicídio**
+    *   **Descrição Legal:** Homicídio qualificado, cometido contra a mulher por razões da condição de sexo feminino. (Art. 121, §2º-A, Código Penal - Lei nº 13.104/2015).
+    *   **No Contexto da Violência Doméstica:** É o ápice do ciclo de violência, o estágio final e irreversível. A lei o define quando o assassinato envolve: **(1)** violência doméstica e familiar ou **(2)** menosprezo e discriminação à condição de mulher. É o crime que este observatório, em última análise, busca ajudar a prevenir.
+
+---
+
+#### <u>CRIMES CONTRA A INTEGRIDADE FÍSICA</u>
+
+*   **Lesão Corporal Dolosa (Geral)**
+    *   **Descrição Legal:** Ofender a integridade corporal ou a saúde de outra pessoa com a intenção de causar dano. (Art. 129, Código Penal).
+    *   **No Contexto da Violência Doméstica:** É a manifestação da violência física, o crime central em muitos casos de agressão. A lei prevê qualificadoras (penas maiores) quando a lesão ocorre no âmbito doméstico. Ela é classificada pela sua gravidade:
+
+    *   **Lesão Corporal Leve - Dolosa:** Agressões que resultam em escoriações, hematomas ("roxos"), inchaços ou outros ferimentos que não causam incapacidade prolongada, perigo de vida ou deformidade. No ambiente doméstico, representa a forma mais comum de violência física registrada, mas nunca deve ser subestimada, pois frequentemente faz parte de um padrão de abuso contínuo.
+
+    *   **Lesão Corporal Grave ou Gravíssima - Dolosa:** Agressões que resultam em consequências severas, como incapacidade para as ocupações habituais por mais de 30 dias (grave), perigo de vida (grave), debilidade permanente de membro/sentido/função (grave), aceleração de parto (grave), incapacidade permanente para o trabalho (gravíssima), enfermidade incurável (gravíssima), perda ou inutilização de membro/sentido/função (gravíssima), deformidade permanente (gravíssima) ou aborto (gravíssima). Representa uma escalada brutal na violência, indicando um risco altíssimo de feminicídio.
+
+*   **Vias de Fato**
+    *   **Descrição Legal:** Atos agressivos que não chegam a constituir uma lesão corporal, ou seja, não deixam marcas visíveis ou vestígios. (Art. 21, Lei de Contravenções Penais).
+    *   **No Contexto da Violência Doméstica:** Inclui empurrões, tapas leves, beliscões, puxões de cabelo ou sacudidas. Embora a lei a trate como uma infração "menor", no ciclo da violência é um ato de humilhação, controle e intimidação que sinaliza a disposição do agressor para a violência física, servindo como um grave alerta.
+
+---
+
+#### <u>CRIMES CONTRA A LIBERDADE SEXUAL</u>
+
+*   **Estupro**
+    *   **Descrição Legal:** Constranger alguém, mediante violência ou grave ameaça, a ter conjunção carnal ou a praticar ou permitir que com ele se pratique outro ato libidinoso. (Art. 213, Código Penal).
+    *   **No Contexto da Violência Doméstica:** É uma das formas mais devastadoras de violência. Ocorre frequentemente dentro de relacionamentos íntimos, onde o agressor (parceiro ou ex-parceiro) ignora a ausência de consentimento da vítima. É um crime marcado por uma profunda subnotificação, especialmente no casamento ou namoro.
+
+    *   **Estupro Coletivo:** Crime de estupro praticado por dois ou mais agressores. (Art. 213, § 1º, Código Penal). No contexto doméstico, pode envolver o parceiro e amigos ou familiares, representando um nível extremo de crueldade, objetificação e trauma para a vítima.
+
+---
+
+#### <u>CRIMES CONTRA A HONRA (Violência Psicológica e Moral)</u>
+
+Os crimes contra a honra são ferramentas comuns da violência psicológica, usados para minar a autoestima da vítima, isolá-la e desacreditá-la perante a sociedade.
+
+*   **Calúnia**
+    *   **Descrição Legal:** Atribuir falsamente a alguém a prática de um fato definido como crime. (Art. 138, Código Penal).
+    *   **No Contexto da Violência Doméstica:** O agressor acusa a vítima, de forma mentirosa, de ter cometido um crime. Ex: "Ela roubou meu dinheiro" ou "Ela agrediu os filhos", com o objetivo de manipulá-la ou prejudicar sua reputação perante autoridades ou a rede de apoio.
+
+*   **Difamação**
+    *   **Descrição Legal:** Imputar a alguém um fato ofensivo à sua reputação, mesmo que o fato não seja crime. (Art. 139, Código Penal).
+    *   **No Contexto da Violência Doméstica:** O agressor espalha fatos (verdadeiros ou falsos) sobre a vida da vítima com o intuito de manchar sua imagem social. Ex: Contar a vizinhos ou familiares detalhes íntimos do casal ou acusá-la de infidelidade, visando isolá-la e humilhá-la publicamente.
+
+*   **Injúria**
+    *   **Descrição Legal:** Ofender a dignidade ou o decoro de alguém, por meio de xingamentos ou atribuição de qualidades negativas. A ofensa é dirigida diretamente à pessoa. (Art. 140, Código Penal).
+    *   **No Contexto da Violência Doméstica:** É a forma mais direta de violência verbal. São os xingamentos e humilhações ("Você é inútil", "Você é louca", "Você não serve para nada") que destroem a saúde mental e a autoestima da vítima. A lei diferencia tipos de injúria:
+
+    *   **Injúria Qualificada pelo Preconceito:** A ofensa utiliza elementos de raça, cor, etnia, religião, origem ou a condição de pessoa idosa ou com deficiência. (Art. 140, § 3º, Código Penal). No contexto doméstico, o agressor explora uma característica de vulnerabilidade da vítima para potencializar a humilhação. Ex: "Sua negra inútil".
+
+    *   **Injúria Real:** Ocorre quando a injúria envolve violência ou vias de fato que, por sua natureza ou pelo meio empregado, são considerados aviltantes (humilhantes). (Art. 140, § 2º, Código Penal). Ex: Um tapa no rosto em público, que além da agressão física, carrega a intenção primária de humilhar.
+
+---
+
+#### <u>OUTROS CRIMES RECORRENTES</u>
+
+*   **Ameaça**
+    *   **Descrição Legal:** Ameaçar alguém, por palavra, escrito ou gesto, de causar-lhe mal injusto e grave. (Art. 147, Código Penal).
+    *   **No Contexto da Violência Doméstica:** É uma das principais ferramentas de controle e coação psicológica. Frases como "Se você me largar, eu te mato" ou "Vou tirar os filhos de você" paralisam a vítima pelo medo, impedindo-a de buscar ajuda ou terminar o relacionamento. Frequentemente, é o primeiro crime a ser denunciado e serve como um forte indicativo de risco de escalada da violência.
+
+---
+
+<div style='text-align: center; padding: 2rem; background-color: #f8f4fb; border: 2px solid #8e24aa; border-radius: 12px; margin-top: 2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.1);'>
+    <h3 style='color: #6a1b9a; margin-bottom: 1.5rem; font-weight: 700;'>Violência contra a mulher é crime. Denuncie!</h3>
+    <div style='display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; align-items: stretch;'>
+        <!-- Emergência 190 -->
+        <div style='background-color: white; border-radius: 8px; padding: 1rem; flex: 1; min-width: 200px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; gap: 15px;'>
+            <div style='font-size: 2.5rem;'>📞</div>
+            <div style='text-align: left;'>
+                <div style='color: #2b0057; font-weight: 800; font-size: 1.1rem; text-transform: uppercase;'>Emergência</div>
+                <div style='color: #555; font-size: 1rem; display: flex; align-items: baseline; gap: 5px;'>
+                    Ligue <span style='color: #2b0057; font-weight: 800; font-size: 2rem; line-height: 1;'>190</span>
+                </div>
+            </div>
+        </div>
+        <!-- Denúncia 181 -->
+        <div style='background-color: white; border-radius: 8px; padding: 1rem; flex: 1; min-width: 200px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; gap: 15px;'>
+            <div style='font-size: 2.5rem;'>📞</div>
+            <div style='text-align: left;'>
+                <div style='color: #2b0057; font-weight: 800; font-size: 1.1rem; text-transform: uppercase;'>Denúncia</div>
+                <div style='color: #555; font-size: 1rem; display: flex; align-items: baseline; gap: 5px;'>
+                    Ligue <span style='color: #2b0057; font-weight: 800; font-size: 2rem; line-height: 1;'>181</span>
+                </div>
+            </div>
+        </div>
+        <!-- WhatsApp -->
+        <div style='background-color: white; border-radius: 8px; padding: 1rem; flex: 1; min-width: 250px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; gap: 15px;'>
+            <div style='font-size: 2.5rem;'>💬</div>
+            <div style='text-align: left;'>
+                <div style='color: #2b0057; font-weight: 800; font-size: 1.1rem; text-transform: uppercase;'>Denúncia</div>
+                <div style='color: #555; font-size: 0.9rem;'>WhatsApp Polícia Civil</div>
+                <div style='color: #2b0057; font-weight: 800; font-size: 1.5rem; line-height: 1.2;'>48 98844-0083</div>
+            </div>
+        </div>
+    </div>
+</div>

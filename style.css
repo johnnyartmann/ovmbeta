@@ -1,0 +1,1021 @@
+/* Importar fontes */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+/* Configurações globais */
+* {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Fundo principal */
+.main {
+    background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+}
+
+/* ========== BOTÕES DE NAVEGAÇÃO (STREAMLIT) ========== */
+/* Estilo dos botões de navegação das abas */
+[data-testid="stHorizontalBlock"] button {
+    transition: all 0.25s ease !important;
+    border-radius: 8px !important;
+    border: 1px solid #e0e0e0 !important;
+    font-weight: 500 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+}
+
+[data-testid="stHorizontalBlock"] button:hover {
+    border-color: #dfc8e8 !important;
+    background-color: #f9f5ff !important;
+    box-shadow: 0 2px 6px rgba(142, 36, 170, 0.15) !important;
+    transform: translateY(-1px) !important;
+}
+
+[data-testid="stHorizontalBlock"] button:active,
+[data-testid="stHorizontalBlock"] button:focus {
+    background: linear-gradient(135deg, #8e24aa 0%, #ab47bc 100%) !important;
+    color: white !important;
+    border-color: #8e24aa !important;
+    box-shadow: 0 4px 12px rgba(142, 36, 170, 0.35) !important;
+}
+
+/* Sidebar customizada (360px) com proteção contra overflow */
+section[data-testid="stSidebar"],
+[data-testid="stSidebar"] {
+    min-width: 360px !important;
+    max-width: 360px !important;
+    width: 360px !important;
+    background: linear-gradient(180deg, #2e0854 0%, #4a148c 50%, #5c1d8c 100%) !important;
+    box-shadow: 3px 0 15px rgba(0, 0, 0, 0.25);
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+}
+
+[data-testid="stSidebarContent"] {
+    width: 360px !important;
+    max-width: 360px !important;
+    padding: 1rem 0.9rem 3rem 0.9rem !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+}
+
+[data-testid="stSidebarUserContent"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+}
+
+/* Headers e subheaders na sidebar */
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3,
+[data-testid="stSidebar"] h4,
+[data-testid="stSidebar"] h5,
+[data-testid="stSidebar"] .stSubheader {
+    color: #ffca28 !important;
+    font-weight: 800 !important;
+    font-size: 1.05rem !important;
+    letter-spacing: 0.8px !important;
+    text-transform: uppercase !important;
+    margin-top: 1.2rem !important;
+    margin-bottom: 0.4rem !important;
+}
+
+/* Labels e textos da sidebar */
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] label p,
+[data-testid="stSidebar"] .stMarkdown p {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    font-size: 0.92rem !important;
+}
+
+/* Campos de entrada (Data Inicial, Data Final) com fundo branco e texto escuro */
+[data-testid="stSidebar"] [data-baseweb="base-input"] {
+    background-color: #ffffff !important;
+    border: 1.5px solid #ba68c8 !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+[data-testid="stSidebar"] [data-baseweb="base-input"] input {
+    color: #111111 !important;
+    font-weight: 700 !important;
+    font-size: 0.92rem !important;
+}
+
+[data-testid="stSidebar"] [data-baseweb="base-input"] svg {
+    fill: #4a148c !important;
+}
+
+/* Select boxes e Dropdowns na sidebar */
+[data-testid="stSidebar"] [data-baseweb="select"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+[data-testid="stSidebar"] [data-baseweb="select"] > div {
+    background-color: #ffffff !important;
+    border: 1.5px solid #ba68c8 !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Texto de opções e seleção em caixas simples */
+[data-testid="stSidebar"] [data-baseweb="select"] [data-testid="stMarkdownContainer"] > p,
+[data-testid="stSidebar"] [data-baseweb="select"] [aria-selected="true"],
+[data-testid="stSidebar"] [data-baseweb="select"] > div > div {
+    color: #111111 !important;
+    font-weight: 600 !important;
+}
+
+[data-testid="stSidebar"] [data-baseweb="select"] svg {
+    fill: #4a148c !important;
+}
+
+/* Tags de itens selecionados em multiselect: fundo lilás claro com texto roxo escuro */
+[data-testid="stSidebar"] [data-baseweb="tag"] {
+    background-color: #f3e5f5 !important;
+    border: 1px solid #ce93d8 !important;
+    border-radius: 6px !important;
+    margin: 2px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-testid="stSidebar"] [data-baseweb="tag"] span,
+[data-testid="stSidebar"] [data-baseweb="tag"] div,
+[data-testid="stSidebar"] [data-baseweb="tag"] p,
+[data-testid="stSidebar"] [data-baseweb="tag"] * {
+    color: #4a148c !important;
+    font-weight: 700 !important;
+    font-size: 0.82rem !important;
+}
+
+[data-testid="stSidebar"] [data-baseweb="tag"] svg,
+[data-testid="stSidebar"] [data-baseweb="tag"] [data-baseweb="tag-close-button"] svg {
+    fill: #6a1b9a !important;
+}
+
+[data-testid="stSidebar"] [data-baseweb="tag"]:hover {
+    background-color: #e1bee7 !important;
+}
+
+/* Checkbox estilizado na sidebar */
+[data-testid="stSidebar"] [data-testid="stCheckbox"] {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.35) !important;
+    margin: 0.4rem 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stCheckbox"] label span,
+[data-testid="stSidebar"] [data-testid="stCheckbox"] label p {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 0.95rem !important;
+}
+
+/* Sliders na sidebar */
+[data-testid="stSidebar"] .stSlider {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+[data-testid="stSidebar"] .stSlider label {
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: #ffffff !important;
+    margin-bottom: 0.3rem;
+}
+
+[data-testid="stSidebar"] .stSlider [data-testid="stMarkdownContainer"] p {
+    color: #ffffff !important;
+}
+
+/* Headers principais */
+h1 {
+    color: #4a148c;
+    font-weight: 700;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 4px solid #8e24aa;
+}
+
+h2 {
+    color: #6a1b9a;
+    font-weight: 600;
+    font-size: 1.8rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+h3 {
+    color: #7b1fa2;
+    font-weight: 600;
+    font-size: 1.4rem;
+    margin-top: 1.5rem;
+}
+
+/* Cards de métricas */
+[data-testid="stMetricValue"] {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #4a148c;
+}
+
+[data-testid="stMetricLabel"] {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #6a1b9a;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+[data-testid="stMetric"] {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+    border-left: 5px solid #8e24aa;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-testid="stMetric"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.12);
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
+    background-color: white;
+    padding: 0.5rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.stTabs [data-baseweb="tab"] {
+    height: 50px;
+    background-color: transparent;
+    border-radius: 8px;
+    color: #6a1b9a;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    background-color: #f3e5f5;
+}
+
+.stTabs [aria-selected="true"] {
+    background: linear-gradient(135deg, #8e24aa 0%, #ab47bc 100%);
+    color: white !important;
+    box-shadow: 0 4px 8px rgba(142, 36, 170, 0.3);
+}
+
+/* Divisores */
+hr {
+    margin: 2rem 0;
+    border: none;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #8e24aa, transparent);
+}
+
+/* Container pai no Streamlit fixado / sticky */
+div[data-testid="stElementContainer"]:has(.custom-info-cards-wrapper),
+div.element-container:has(.custom-info-cards-wrapper),
+[data-testid="stVerticalBlock"] > div:has(.custom-info-cards-wrapper) {
+    position: -webkit-sticky !important;
+    position: sticky !important;
+    top: 0px !important;
+    z-index: 995 !important;
+    width: 100% !important;
+}
+
+/* Banner de Filtros Ativos Fixo / Sticky com Desfoque */
+.custom-info-cards-wrapper {
+    position: -webkit-sticky !important;
+    position: sticky !important;
+    top: 0px !important;
+    z-index: 995 !important;
+    background: linear-gradient(135deg, rgba(46, 8, 84, 0.90) 0%, rgba(74, 20, 140, 0.90) 50%, rgba(106, 27, 154, 0.90) 100%) !important;
+    border-radius: 12px !important;
+    padding: 0.65rem 1rem !important;
+    margin-bottom: 1.5rem !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.4rem !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+}
+
+.info-card {
+    background: #ffffff !important;
+    border-radius: 8px !important;
+    padding: 0.45rem 0.75rem !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid rgba(142, 36, 170, 0.25) !important;
+}
+
+/* Containers de gráficos */
+.js-plotly-plot {
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+    background: white;
+    padding: 1rem;
+    box-sizing: border-box;
+    width: 100% !important;
+}
+
+/* Tabelas */
+[data-testid="stDataFrame"] {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+}
+
+[data-testid="stDataFrame"] th {
+    background: linear-gradient(135deg, #6a1b9a 0%, #8e24aa 100%);
+    color: white !important;
+    font-weight: 600;
+    padding: 1rem;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+[data-testid="stDataFrame"] td {
+    padding: 0.8rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+[data-testid="stDataFrame"] tr:hover {
+    background-color: #f8f4fb;
+}
+
+/* Alertas e mensagens */
+.stAlert {
+    border-radius: 10px;
+    border-left: 5px solid;
+    padding: 1rem 1.5rem;
+}
+
+[data-baseweb="notification"][kind="error"] {
+    border-left-color: #d32f2f;
+}
+
+[data-baseweb="notification"][kind="warning"] {
+    border-left-color: #f57c00;
+}
+
+[data-baseweb="notification"][kind="info"] {
+    border-left-color: #0288d1;
+}
+
+/* Expander na sidebar */
+[data-testid="stSidebar"] .streamlit-expanderHeader {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    border-radius: 8px;
+    font-weight: 600;
+    color: white !important;
+    padding: 0.8rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    margin-bottom: 0.5rem;
+}
+
+[data-testid="stSidebar"] .streamlit-expanderHeader:hover {
+    background-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+[data-testid="stSidebar"] .streamlit-expanderHeader p {
+    color: white !important;
+    font-weight: 600;
+}
+
+[data-testid="stSidebar"] .streamlit-expanderHeader svg {
+    fill: white !important;
+}
+
+[data-testid="stSidebar"] .streamlit-expanderContent {
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 0 0 8px 8px;
+    padding: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-top: none;
+}
+
+/* Checkbox na sidebar */
+[data-testid="stSidebar"] .stCheckbox {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 0.5rem;
+    border-radius: 6px;
+    margin: 0.5rem 0;
+}
+
+/* Info boxes na sidebar */
+[data-testid="stSidebar"] [data-testid="stNotification"] {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    border-left: 3px solid #fff !important;
+    padding: 0.5rem !important;
+    border-radius: 6px;
+    margin: 0.5rem 0;
+}
+
+[data-testid="stSidebar"] [data-testid="stNotification"] p {
+    color: white !important;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+/* Caption na sidebar */
+[data-testid="stSidebar"] .stCaptionContainer {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 0.8rem;
+    margin-top: 0.3rem;
+}
+
+/* Botões e Navegação de Abas Responsiva */
+.stButton {
+    width: 100% !important;
+}
+
+.stButton > button,
+button[data-testid="stBaseButton-primary"],
+button[data-testid="stBaseButton-secondary"] {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    min-height: 42px !important;
+    height: auto !important;
+    padding: 0.55rem 0.85rem !important;
+    font-size: clamp(0.78rem, 0.9vw, 0.95rem) !important;
+    font-weight: 700 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.35rem !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Transforma as 4 colunas de abas em grade 2x2 flexível quando a tela encolhe */
+[data-testid="stHorizontalBlock"]:has(button[key*="btn_"]),
+[data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-secondary"]),
+[data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-primary"]) {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+    margin-bottom: 0.75rem !important;
+}
+
+[data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) > div,
+[data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-secondary"]) > div,
+[data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-primary"]) > div {
+    flex: 1 1 200px !important;
+    min-width: 175px !important;
+    max-width: 100% !important;
+}
+
+.stButton>button {
+    background: linear-gradient(135deg, #8e24aa 0%, #ab47bc 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 6px rgba(142, 36, 170, 0.3);
+}
+
+.stButton>button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(142, 36, 170, 0.4);
+}
+
+/* Botão de impressão nativa na sidebar */
+.btn-print-sidebar {
+    width: 100% !important;
+    background: linear-gradient(135deg, #ffd54f 0%, #ffb300 100%) !important;
+    color: #1a1a1a !important;
+    border: 2px solid #ffe082 !important;
+    border-radius: 8px !important;
+    padding: 0.65rem 1rem !important;
+    font-size: 0.95rem !important;
+    font-weight: 800 !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25) !important;
+    transition: all 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    margin-top: 0.2rem !important;
+}
+
+.btn-print-sidebar:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35) !important;
+    background: linear-gradient(135deg, #ffe082 0%, #ffca28 100%) !important;
+}
+
+/* Marca d'água de rodapé */
+.footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: linear-gradient(90deg, #4a148c 0%, #6a1b9a 100%);
+    color: white;
+    text-align: center;
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    z-index: 999;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Títulos das seções com ícones */
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.5rem;
+    border-left: 5px solid #8e24aa;
+}
+
+.section-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+/* Animação de entrada */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.main>div {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* ========== SISTEMA DE RESPONSIVIDADE MULTITELA ========== */
+
+/* 1. Telas Muito Grandes e Monitores Ultra-Wide / 4K (>= 1600px) */
+@media (min-width: 1600px) {
+    .block-container {
+        max-width: 1650px !important;
+        margin: 0 auto !important;
+    }
+    section[data-testid="stSidebar"],
+    [data-testid="stSidebar"] {
+        min-width: 380px !important;
+        max-width: 380px !important;
+        width: 380px !important;
+    }
+    [data-testid="stSidebarContent"] {
+        width: 380px !important;
+        max-width: 380px !important;
+    }
+}
+
+/* 2. Desktops Padrão e Laptops Médios (1200px a 1599px) */
+@media (min-width: 1200px) and (max-width: 1599px) {
+    section[data-testid="stSidebar"],
+    [data-testid="stSidebar"] {
+        min-width: 360px !important;
+        max-width: 360px !important;
+        width: 360px !important;
+    }
+    [data-testid="stSidebarContent"] {
+        width: 360px !important;
+        max-width: 360px !important;
+    }
+}
+
+/* 3. Tablets e Laptops Pequenos (769px a 1199px) */
+@media (min-width: 769px) and (max-width: 1199px) {
+    section[data-testid="stSidebar"],
+    [data-testid="stSidebar"] {
+        min-width: 310px !important;
+        max-width: 310px !important;
+        width: 310px !important;
+    }
+    [data-testid="stSidebarContent"] {
+        width: 310px !important;
+        max-width: 310px !important;
+    }
+    .info-card {
+        flex: 1 1 110px !important;
+        min-width: 105px !important;
+        padding: 0.4rem 0.5rem !important;
+    }
+    .info-card p {
+        font-size: 12.5px !important;
+    }
+}
+
+/* 4. Celulares e Dispositivos Móveis (<= 768px) */
+@media (max-width: 768px) {
+    section[data-testid="stSidebar"],
+    [data-testid="stSidebar"] {
+        min-width: 100vw !important;
+        max-width: 100vw !important;
+        width: 100vw !important;
+    }
+
+    [data-testid="stSidebarContent"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 1rem 0.75rem 3rem 0.75rem !important;
+    }
+
+    .block-container {
+        padding-top: 0.8rem !important;
+        padding-bottom: 1.5rem !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+        max-width: 100% !important;
+    }
+
+    h1 {
+        font-size: 1.6rem !important;
+    }
+
+    h2 {
+        font-size: 1.3rem !important;
+    }
+
+    h3 {
+        font-size: 1.1rem !important;
+    }
+
+    [data-testid="stMetricValue"] {
+        font-size: 1.5rem !important;
+    }
+
+    [data-testid="stMetricLabel"] {
+        font-size: 0.85rem !important;
+    }
+
+    [data-testid="stMetric"] {
+        padding: 0.8rem !important;
+    }
+
+    /* Faz as colunas empilharem verticalmente no celular */
+    [data-testid="stHorizontalBlock"] {
+        flex-direction: column !important;
+        gap: 0.8rem !important;
+    }
+
+    /* Cards de filtro ativos adaptados para 2 por linha no celular */
+    .custom-info-cards-wrapper {
+        padding: 0.5rem 0.6rem !important;
+        margin-bottom: 1rem !important;
+    }
+
+    .info-container {
+        gap: 0.4rem !important;
+    }
+
+    .info-card {
+        flex: 1 1 calc(50% - 0.4rem) !important;
+        min-width: 120px !important;
+        padding: 0.35rem 0.5rem !important;
+    }
+
+    .info-card h5 {
+        font-size: 9.5px !important;
+    }
+
+    .info-card p {
+        font-size: 11.5px !important;
+    }
+
+    .info-card span {
+        font-size: 9px !important;
+    }
+
+    /* Reduz o padding dos gráficos para caber em telas estreitas */
+    .js-plotly-plot {
+        padding: 0.3rem !important;
+    }
+
+    /* Rodapé relativo */
+    .footer {
+        position: relative;
+        padding: 0.8rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* ========== BOTÃO DE IMPRESSÃO NA TELA ========== */
+.print-action-bar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.75rem;
+}
+
+.btn-print-screen {
+    background: linear-gradient(135deg, #4a148c 0%, #6a1b9a 100%);
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(74, 20, 140, 0.2);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-print-screen:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(74, 20, 140, 0.35);
+    background: linear-gradient(135deg, #6a1b9a 0%, #8e24aa 100%);
+}
+
+/* Oculto na tela comum do navegador */
+.print-institutional-header {
+    display: none;
+}
+
+/* ========== REGRAS DE IMPRESSÃO PROFISSIONAL (SALVAR PDF VIA CTRL+P) ========== */
+@media print {
+    @page {
+        margin: 8mm 12mm 12mm 12mm;
+        size: A4 portrait;
+    }
+
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+    }
+
+    /* Oculta elementos interativos de tela e barras de controle */
+    [data-testid="stSidebar"],
+    .footer,
+    [data-testid="stHeader"],
+    header[data-testid="stHeader"],
+    [data-testid="stToolbar"],
+    .header-nav-row,
+    .print-action-bar,
+    button,
+    .stButton,
+    [data-baseweb="select"],
+    .stSelectbox,
+    .stMultiSelect,
+    .stSlider,
+    details,
+    summary,
+    .header-expander,
+    .streamlit-expanderHeader,
+    .streamlit-expanderContent,
+    [data-testid="stExpander"],
+    [data-testid="stElementContainer"]:has(button),
+    [data-testid="stHorizontalBlock"]:has(button),
+    div.element-container:has(button),
+    [data-testid="stElementContainer"]:has([data-baseweb="select"]),
+    div.element-container:has([data-baseweb="select"]),
+    [data-testid="stElementContainer"]:has(.custom-info-cards-wrapper),
+    div.element-container:has(.custom-info-cards-wrapper),
+    [data-testid="stVerticalBlock"] > div:has(.custom-info-cards-wrapper),
+    .custom-info-cards-wrapper {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+
+    /* Container Principal - Remove espaço em branco no topo */
+    .main,
+    .block-container,
+    [data-testid="stMain"],
+    [data-testid="stMainBlockContainer"],
+    [data-testid="stAppViewContainer"] {
+        padding: 0 !important;
+        padding-top: 0 !important;
+        margin: 0 !important;
+        margin-top: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        background: white !important;
+    }
+
+    div[data-testid="stVerticalBlock"] {
+        gap: 0.5rem !important;
+    }
+
+    /* Exibe o Cabeçalho Institucional Oficial no topo absoluto */
+    .print-institutional-header {
+        display: block !important;
+        width: 100% !important;
+        margin-top: 0 !important;
+        margin-bottom: 12px !important;
+        padding-top: 0 !important;
+        padding-bottom: 10px !important;
+        border-bottom: 2px solid #4a148c !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+    }
+
+    .print-header-top {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 16px !important;
+        margin-bottom: 10px !important;
+    }
+
+    .print-logo-box {
+        flex: 0 0 85px !important;
+        display: block !important;
+    }
+
+    .print-logo {
+        max-width: 85px !important;
+        max-height: 65px !important;
+        object-fit: contain !important;
+        display: block !important;
+    }
+
+    .print-title-box {
+        flex: 1 !important;
+    }
+
+    .print-main-title {
+        font-size: 16px !important;
+        font-weight: 800 !important;
+        color: #4a148c !important;
+        margin: 0 0 3px 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        line-height: 1.2 !important;
+    }
+
+    .print-sub-title {
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: #6a1b9a !important;
+        margin-bottom: 2px !important;
+    }
+
+    .print-emission-time {
+        font-size: 10.5px !important;
+        color: #555555 !important;
+    }
+
+    .print-filters-box {
+        background-color: #f8f4fb !important;
+        border: 1px solid #d1c4e9 !important;
+        border-left: 4px solid #4a148c !important;
+        border-radius: 6px !important;
+        padding: 8px 12px !important;
+        margin-top: 8px !important;
+    }
+
+    .print-filters-title {
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        color: #4a148c !important;
+        margin-bottom: 5px !important;
+        text-transform: uppercase !important;
+    }
+
+    .print-filters-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 3px 12px !important;
+        font-size: 10.5px !important;
+        color: #333333 !important;
+    }
+
+    .print-filter-item strong {
+        color: #4a148c !important;
+    }
+
+    /* Container Principal */
+    .main, .block-container {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        background: white !important;
+    }
+
+    /* Evita colisão de colunas lado a lado empilhando verticalmente na folha A4 */
+    [data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        gap: 1.2rem !important;
+    }
+
+    [data-testid="stHorizontalBlock"] > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 1 1 100% !important;
+    }
+
+    /* Títulos de Seção */
+    h1, h2, h3 {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+        page-break-before: auto !important;
+        break-before: auto !important;
+        color: #4a148c !important;
+    }
+
+    h1 {
+        font-size: 1.4rem !important;
+        border-bottom: 2px solid #8e24aa !important;
+        margin-top: 1.2rem !important;
+        padding-bottom: 0.3rem !important;
+    }
+
+    h2 {
+        font-size: 1.2rem !important;
+        margin-top: 1rem !important;
+    }
+
+    h3 {
+        font-size: 1.05rem !important;
+        margin-top: 0.8rem !important;
+    }
+
+    /* Gráficos Plotly */
+    .js-plotly-plot {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        margin: 1rem 0 !important;
+        box-shadow: none !important;
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 6px !important;
+    }
+
+    .js-plotly-plot .plotly .main-svg {
+        width: 100% !important;
+    }
+
+    svg {
+        max-width: 100% !important;
+        overflow: visible !important;
+    }
+
+    /* Tabelas e DataFrames */
+    [data-testid="stDataFrame"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        box-shadow: none !important;
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 6px !important;
+        margin: 0.8rem 0 !important;
+    }
+
+    /* Métricas / Cards de KPIs */
+    [data-testid="stMetric"] {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        box-shadow: none !important;
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 6px !important;
+        padding: 0.5rem !important;
+    }
+
+    /* Fundo branco e texto nítido */
+    body {
+        color: #111111 !important;
+        background: white !important;
+    }
+}
+

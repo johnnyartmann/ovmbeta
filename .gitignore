@@ -1,0 +1,11 @@
+# Ignorar bases brutas com dados sensíveis (LGPD) e arquivos grandes
+data/base_geral.xlsx
+data/base_feminicidio.xlsx
+
+# Ignorar caches e ambientes virtuais locais
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+.streamlit/secrets.toml
