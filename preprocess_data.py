@@ -139,15 +139,23 @@ def carregar_e_processar_dados(df_geral_ssp=None, df_feminicidio_ssp=None):
             "CUNHADA": "CUNHADO",
             "VÓ": "NETO",
             "EX-CUNHADA": "EX-CUNHADO",
-            "ENTEADA": "PADRASTO"
+            "ENTEADA": "PADRASTO",
+            "EX-ENTEADA": "EX-PADRASTO",
+            "EX- ENTEADA": "EX-PADRASTO",
+            "EX-ENTEADO": "EX-PADRASTO",
+            "EX- ENTEADO": "EX-PADRASTO",
+            "OUTRA": "OUTRO",
         }
         
         if 'relacao_autor' in df_feminicidio.columns:
-             # Normaliza para maiúsculas para garantir o match (embora o dropna/fillna venha depois, é bom garantir)
-             # Mas o mapa está em caixa alta. Vamos garantir que a coluna esteja pronta.
-             # O replace funciona bem se os valores forem exatos. Se tiver espaço extra, pode falhar.
-             # Vamos fazer um strip e upper antes, se for string.
-             df_feminicidio['relacao_autor'] = df_feminicidio['relacao_autor'].astype(str).str.strip().str.upper()
+             # Normaliza para maiúsculas e remove espaços extras após hífen
+             df_feminicidio['relacao_autor'] = (
+                 df_feminicidio['relacao_autor']
+                 .astype(str)
+                 .str.strip()
+                 .str.upper()
+                 .str.replace(r'EX-\s+', 'EX-', regex=True)
+             )
              df_feminicidio['relacao_autor'] = df_feminicidio['relacao_autor'].replace(mapa_relacoes)
              # Caso algum valor não esteja no mapa, ele permanece o original (ou 'NAN' se era nan).
              # O tratamento de 'nan' para 'Não informado' vem logo abaixo em colunas_texto.
