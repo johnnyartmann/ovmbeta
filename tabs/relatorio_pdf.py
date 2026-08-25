@@ -1232,7 +1232,7 @@ def add_two_images(pdf, img1_bytes, img2_bytes, title1=None, title2=None, max_h=
 
 
 def add_table(pdf, df, col_widths=None, max_rows=55, title=None):
-    """Renderiza tabela formatada com suporte a quebra automática de página."""
+    """Renderiza tabela formatada com suporte a quebra automática de página e ajuste dinâmico de colunas."""
     if df is None or df.empty:
         pdf.set_font(pdf.font_family_name, 'I', 7.5)
         pdf.set_text_color(*CINZA_SUAVE)
@@ -1246,6 +1246,24 @@ def add_table(pdf, df, col_widths=None, max_rows=55, title=None):
         pdf.ln(1)
 
     df_display = df.head(max_rows).copy()
+
+    # Simplifica nomes longos de crimes para tabelas condensadas
+    crime_short_map = {
+        'Lesão corporal grave ou gravíssima - Dolosa': 'Lesão grave dolosa',
+        'Lesão corporal leve - Dolosa': 'Lesão leve dolosa',
+        'Injúria qualificada pelo preconceito': 'Injúria preconceito',
+        'Injúria real': 'Injúria real',
+        'Feminicídio': 'Feminicídio',
+        'Vias de fato': 'Vias de fato',
+        'Ameaça': 'Ameaça',
+        'Injúria': 'Injúria',
+        'Difamação': 'Difamação',
+        'Calúnia': 'Calúnia',
+        'Estupro': 'Estupro'
+    }
+    for col_c in df_display.columns:
+        if any(term in str(col_c).lower() for term in ['crime', 'natureza', 'fato']):
+            df_display[col_c] = df_display[col_c].astype(str).replace(crime_short_map)
 
     # Simplifica cabeçalhos longos para o PDF
     rename_dict = {}
@@ -1266,22 +1284,48 @@ def add_table(pdf, df, col_widths=None, max_rows=55, title=None):
         elif c_str.lower() == 'total':
             rename_dict[c] = 'Total'
         elif 'Letalidade' in c_str:
-            rename_dict[c] = 'Ind. Letalidade'
+            rename_dict[c] = 'Letalidade'
         elif 'Ocorrências Gerais' in c_str:
             rename_dict[c] = 'Ocorrências'
+        elif c_str == 'Nome do Município' and len(df_display.columns) > 8:
+            rename_dict[c] = 'Município'
+        elif c_str == 'Nome da Associação de Municípios' and len(df_display.columns) > 8:
+            rename_dict[c] = 'Associação'
+        elif c_str == 'Tipo de Crime' and len(df_display.columns) > 8:
+            rename_dict[c] = 'Crime'
 
     if rename_dict:
         df_display = df_display.rename(columns=rename_dict)
 
     columns = list(df_display.columns)
     n_cols = len(columns)
-    usable_w = 190
+    usable_w = 190.0
+
+    # Identifica colunas de texto
+    text_cols_idx = set()
+    for idx_col, c in enumerate(columns):
+        c_lower = str(c).lower()
+        if any(k in c_lower for k in ['município', 'municipio', 'associação', 'associacao', 'mesorregião', 'mesoregiao', 'crime', 'natureza', 'região', 'regiao']):
+            text_cols_idx.add(idx_col)
+        elif df_display[c].dtype == object:
+            first_val = str(df_display[c].iloc[0]) if not df_display.empty else ''
+            if not any(char.isdigit() for char in first_val):
+                text_cols_idx.add(idx_col)
+
+    if 0 not in text_cols_idx:
+        text_cols_idx.add(0)
 
     if col_widths is None:
         if n_cols > 6:
-            w_first = 28
-            w_other = (usable_w - w_first) / (n_cols - 1)
-            col_widths = [w_first] + [w_other] * (n_cols - 1)
+            if len(text_cols_idx) >= 2 and 0 in text_cols_idx and 1 in text_cols_idx:
+                w_0 = 24.0
+                w_1 = 25.0
+                w_other = (usable_w - (w_0 + w_1)) / (n_cols - 2)
+                col_widths = [w_0, w_1] + [w_other] * (n_cols - 2)
+            else:
+                w_first = 30.0
+                w_other = (usable_w - w_first) / (n_cols - 1)
+                col_widths = [w_first] + [w_other] * (n_cols - 1)
         else:
             col_widths = [usable_w / n_cols] * n_cols
     else:
@@ -1289,11 +1333,20 @@ def add_table(pdf, df, col_widths=None, max_rows=55, title=None):
         if abs(tot - usable_w) > 0.1:
             col_widths = [w * (usable_w / tot) for w in col_widths]
 
+    def _fit_txt(txt, max_w):
+        txt_s = str(txt)
+        if pdf.get_string_width(txt_s) <= max_w - 0.8:
+            return txt_s
+        while len(txt_s) > 1 and pdf.get_string_width(txt_s + '..') > max_w - 0.8:
+            txt_s = txt_s[:-1]
+        return txt_s + '..'
+
     row_h = 4.8
     header_h = 5.4
 
     # Cabeçalho da tabela
-    pdf.set_font(pdf.font_family_name, 'B', 6.0 if n_cols > 8 else 6.5)
+    header_font_size = 5.6 if n_cols > 10 else (6.0 if n_cols > 6 else 6.8)
+    pdf.set_font(pdf.font_family_name, 'B', header_font_size)
     pdf.set_fill_color(*ROXO_ESCURO)
     pdf.set_text_color(*BRANCO)
     pdf.set_draw_color(*ROXO_ESCURO)
@@ -1301,34 +1354,32 @@ def add_table(pdf, df, col_widths=None, max_rows=55, title=None):
     x_start = 10
     curr_x = x_start
     for i, col in enumerate(columns):
-        col_name = str(col)
-        if len(col_name) > 22:
-            col_name = col_name[:20] + '..'
+        col_name = _fit_txt(col, col_widths[i])
         pdf.set_xy(curr_x, pdf.get_y())
         pdf.cell(col_widths[i], header_h, col_name, border=1, align='C', fill=True)
         curr_x += col_widths[i]
     pdf.ln(header_h)
 
     # Linhas de dados
-    pdf.set_font(pdf.font_family_name, '', 5.8 if n_cols > 8 else 6.2)
+    font_size_data = 5.5 if n_cols > 10 else (5.8 if n_cols > 6 else 6.4)
+    pdf.set_font(pdf.font_family_name, '', font_size_data)
+
     for idx, row in df_display.iterrows():
         # Quebra automática se ultrapassar a página
         if pdf.get_y() + row_h > pdf.h - 14:
             pdf.add_page()
             # Re-renderiza cabeçalho da tabela
-            pdf.set_font(pdf.font_family_name, 'B', 6.0 if n_cols > 8 else 6.5)
+            pdf.set_font(pdf.font_family_name, 'B', header_font_size)
             pdf.set_fill_color(*ROXO_ESCURO)
             pdf.set_text_color(*BRANCO)
             curr_x = x_start
             for i, col in enumerate(columns):
-                col_name = str(col)
-                if len(col_name) > 22:
-                    col_name = col_name[:20] + '..'
+                col_name = _fit_txt(col, col_widths[i])
                 pdf.set_xy(curr_x, pdf.get_y())
                 pdf.cell(col_widths[i], header_h, col_name, border=1, align='C', fill=True)
                 curr_x += col_widths[i]
             pdf.ln(header_h)
-            pdf.set_font(pdf.font_family_name, '', 5.8 if n_cols > 8 else 6.2)
+            pdf.set_font(pdf.font_family_name, '', font_size_data)
 
         is_even = (list(df_display.index).index(idx) % 2 == 0)
         pdf.set_fill_color(*(CINZA_BG if is_even else BRANCO))
@@ -1344,7 +1395,7 @@ def add_table(pdf, df, col_widths=None, max_rows=55, title=None):
             elif isinstance(val, (int, np.integer)):
                 val_str = f"{val:,}".replace(",", ".")
 
-            align = 'L' if i == 0 else 'R'
+            align = 'L' if i in text_cols_idx else 'R'
             col_str = str(col)
             if 'Δ' in col_str or 'Dif' in col_str or 'Tend' in col_str:
                 try:
@@ -1361,16 +1412,22 @@ def add_table(pdf, df, col_widths=None, max_rows=55, title=None):
                 pdf.set_text_color(*CINZA_TEXTO)
 
             pdf.set_xy(curr_x, y_row)
-            pdf.cell(col_widths[i], row_h, val_str, border=1, align=align, fill=True)
+            cell_txt = _fit_txt(val_str, col_widths[i])
+            pdf.cell(col_widths[i], row_h, cell_txt, border=1, align=align, fill=True)
             curr_x += col_widths[i]
 
         pdf.ln(row_h)
 
     pdf.ln(2)
     if len(df) > max_rows:
-        pdf.set_font(pdf.font_family_name, 'I', 6.0)
+        pdf.set_font(pdf.font_family_name, 'I', 5.8)
         pdf.set_text_color(*CINZA_SUAVE)
-        pdf.cell(0, 3.5, f'* Exibindo as primeiras {max_rows} de {len(df)} linhas.', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.cell(
+            0, 3.5,
+            f"* Exibindo as primeiras {max_rows} de {len(df)} linhas. "
+            f"A tabela completa pode ser baixada em formato XLSX ou CSV diretamente no painel do sistema.",
+            new_x=XPos.LMARGIN, new_y=YPos.NEXT
+        )
 
 
 # ============================================================================
