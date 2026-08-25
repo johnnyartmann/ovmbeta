@@ -257,9 +257,9 @@ if not df_geral.empty:
         st.markdown("---")
         st.subheader("📄 RELATÓRIO OFICIAL")
 
-        btn_gerar_label = "📄 Gerar Relatório PDF Completo"
+        btn_gerar_label = "📄 Gerar Relatório PDF Completo (18 Páginas)"
         if st.button(btn_gerar_label, use_container_width=True, type="primary", key=f"btn_gerar_pdf_{_rc}"):
-            with st.spinner("Gerando Relatório Executivo Completo (12 Páginas)..."):
+            with st.spinner("Gerando Relatório Executivo Completo (18 Páginas)..."):
                 try:
                     from tabs.relatorio_pdf import gerar_relatorio_pdf
                     pdf_bytes = gerar_relatorio_pdf(
@@ -281,7 +281,7 @@ if not df_geral.empty:
 
         if st.session_state.get('pdf_gerado_bytes'):
             st.download_button(
-                label="⬇️ Baixar Relatório PDF (12 Págs)",
+                label="⬇️ Baixar Relatório PDF (18 Págs)",
                 data=st.session_state['pdf_gerado_bytes'],
                 file_name=st.session_state.get('pdf_gerado_nome', 'Relatorio_OVM_SC.pdf'),
                 mime="application/pdf",
