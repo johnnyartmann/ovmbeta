@@ -68,7 +68,27 @@ def formatar_ano_mes(val):
 
 def plot_serie_temporal(registros_por_mes_ano, chart_type, agrupamento_selecionado, color_param_temporal):
     """Gera o gráfico de série temporal."""
+    if registros_por_mes_ano.empty:
+        return go.Figure()
+
     df_temp = registros_por_mes_ano.copy()
+
+    # Obter lista cronológica completa de meses (do primeiro ao último mês)
+    raw_months = df_temp['ano_mes'].dropna().astype(str).unique()
+    try:
+        min_p = pd.Period(min(raw_months), freq='M')
+        max_p = pd.Period(max(raw_months), freq='M')
+        all_periods = pd.period_range(min_p, max_p, freq='M')
+        ordem_cronologica = [formatar_ano_mes(str(p)) for p in all_periods]
+    except Exception:
+        ordem_cronologica = [formatar_ano_mes(str(m)) for m in sorted(raw_months)]
+
+    # Ordenar o dataframe para garantir que os pontos de cada linha/traço sigam a sequência temporal
+    if color_param_temporal and color_param_temporal in df_temp.columns:
+        df_temp = df_temp.sort_values(by=[color_param_temporal, 'ano_mes'])
+    else:
+        df_temp = df_temp.sort_values(by=['ano_mes'])
+
     df_temp['ano_mes'] = df_temp['ano_mes'].apply(formatar_ano_mes)
     
     if chart_type == "Barras":
@@ -88,7 +108,7 @@ def plot_serie_temporal(registros_por_mes_ano, chart_type, agrupamento_seleciona
         if agrupamento_selecionado == "Consolidado":
             fig.update_traces(line_color='#8A2BE2')
     fig.update_layout(separators=",.")
-    fig.update_xaxes(type='category')
+    fig.update_xaxes(type='category', categoryorder='array', categoryarray=ordem_cronologica)
     return fig
 
 
@@ -244,7 +264,27 @@ def plot_mapa_feminicidio(map_df_fem, geojson_sc, agrupamento_selecionado):
 
 def plot_feminicidio_serie_temporal(feminicidios_por_mes, chart_type, agrupamento_selecionado, color_param):
     """Gera o gráfico de série temporal de feminicídios."""
+    if feminicidios_por_mes.empty:
+        return go.Figure()
+
     df_temp = feminicidios_por_mes.copy()
+
+    # Obter lista cronológica completa de meses (do primeiro ao último mês)
+    raw_months = df_temp['Mês/Ano'].dropna().astype(str).unique()
+    try:
+        min_p = pd.Period(min(raw_months), freq='M')
+        max_p = pd.Period(max(raw_months), freq='M')
+        all_periods = pd.period_range(min_p, max_p, freq='M')
+        ordem_cronologica = [formatar_ano_mes(str(p)) for p in all_periods]
+    except Exception:
+        ordem_cronologica = [formatar_ano_mes(str(m)) for m in sorted(raw_months)]
+
+    # Ordenar o dataframe para garantir sequência temporal correta
+    if color_param and color_param in df_temp.columns:
+        df_temp = df_temp.sort_values(by=[color_param, 'Mês/Ano'])
+    else:
+        df_temp = df_temp.sort_values(by=['Mês/Ano'])
+
     df_temp['Mês/Ano'] = df_temp['Mês/Ano'].apply(formatar_ano_mes)
     
     if chart_type == "Linha":
@@ -267,7 +307,7 @@ def plot_feminicidio_serie_temporal(feminicidios_por_mes, chart_type, agrupament
             fig.update_traces(marker_color='#8A2BE2')
         fig.update_traces(textposition='outside')
     fig.update_layout(separators=",.")
-    fig.update_xaxes(type='category')
+    fig.update_xaxes(type='category', categoryorder='array', categoryarray=ordem_cronologica)
     return fig
 
 
