@@ -139,8 +139,7 @@ def plot_por_ano(registros_por_ano, chart_type, agrupamento_selecionado, color_p
         if agrupamento_selecionado == "Consolidado":
             fig.update_traces(line_color='#8A2BE2')
     else:  # Pizza
-        pie_names = 'ano' if agrupamento_selecionado == "Consolidado" else color_param
-        fig = px.pie(registros_por_ano, names=pie_names, values='Quantidade', hole=.4,
+        fig = px.pie(registros_por_ano, names='ano', values='Quantidade', hole=.4,
                      color_discrete_sequence=px.colors.sequential.Purples_r)
         fig.update_traces(textinfo='percent+label', textposition='outside')
     fig.update_layout(separators=",.")
@@ -195,8 +194,7 @@ def plot_tipo_crime(registros_por_fato, chart_type, agrupamento_selecionado, col
         fig.update_traces(textposition='auto')
         fig.update_layout(yaxis={'categoryorder': 'total ascending'})
     else:  # Pizza
-        pie_names = 'fato_comunicado' if agrupamento_selecionado == "Consolidado" else color_param
-        fig = px.pie(registros_por_fato, names=pie_names, values='Quantidade', hole=.4,
+        fig = px.pie(registros_por_fato, names='fato_comunicado', values='Quantidade', hole=.4,
                      color_discrete_sequence=px.colors.sequential.Purples_r)
         fig.update_traces(textinfo='percent+label', textposition='outside')
         fig.update_layout(separators=",.")
@@ -309,8 +307,7 @@ def plot_vinculo_autor(vinculo_autor, chart_type, agrupamento_selecionado, color
         fig.update_traces(textposition='auto')
         fig.update_layout(yaxis={'categoryorder': 'total ascending'})
     else:  # Pizza
-        pie_names = 'relacao_autor' if agrupamento_selecionado == "Consolidado" else color_param
-        fig = px.pie(vinculo_autor, names=pie_names, values='Quantidade', hole=.4,
+        fig = px.pie(vinculo_autor, names='relacao_autor', values='Quantidade', hole=.4,
                      color_discrete_sequence=px.colors.sequential.Purples_r)
         fig.update_traces(textinfo='percent+label', textposition='outside')
         fig.update_layout(separators=",.")
@@ -451,8 +448,7 @@ def plot_meio_crime(meio_crime, chart_type, agrupamento_selecionado, color_param
             fig.update_traces(marker_color='#8A2BE2')
         fig.update_traces(textposition='outside')
     else:  # Pizza
-        pie_names = 'meio_crime' if agrupamento_selecionado == "Consolidado" else color_param
-        fig = px.pie(meio_crime, names=pie_names, values='Quantidade', hole=.4,
+        fig = px.pie(meio_crime, names='meio_crime', values='Quantidade', hole=.4,
                      color_discrete_sequence=px.colors.sequential.Purples_r)
         fig.update_traces(textinfo='percent+label', textposition='outside')
     fig.update_layout(separators=",.")
@@ -497,8 +493,7 @@ def plot_localidade_crime(localidade_crime, chart_type, agrupamento_selecionado,
             fig.update_traces(marker_color='#8A2BE2')
         fig.update_traces(textposition='outside')
     else:  # Pizza
-        pie_names = 'localidade' if agrupamento_selecionado == "Consolidado" else color_param
-        fig = px.pie(localidade_crime, names=pie_names, values='Quantidade', hole=.4,
+        fig = px.pie(localidade_crime, names='localidade', values='Quantidade', hole=.4,
                      color_discrete_sequence=px.colors.sequential.Purples_r)
         fig.update_traces(textinfo='percent+label', textposition='outside')
     fig.update_layout(separators=",.")
