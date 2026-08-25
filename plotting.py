@@ -139,30 +139,60 @@ def plot_dia_semana(registros_por_dia, chart_type):
 
 def plot_por_ano(registros_por_ano, chart_type, agrupamento_selecionado, color_param):
     """Gera o gráfico de ocorrências por ano."""
+    if registros_por_ano.empty:
+        return go.Figure()
+
+    df_temp = registros_por_ano.copy()
+
+    # Obter lista cronológica ordenada de anos
+    raw_anos = [int(str(x).split()[0]) for x in df_temp['ano'].dropna().unique() if str(x).split()[0].isdigit()]
+    if raw_anos:
+        min_a = min(raw_anos)
+        max_a = max(raw_anos)
+        ano_corrente = pd.Timestamp.now().year
+        tem_parcial = any('(Parcial)' in str(x) for x in df_temp['ano'])
+        ordem_anos = [f'{a} (Parcial)' if (a == ano_corrente and tem_parcial) else str(a) for a in range(min_a, max_a + 1)]
+    else:
+        ordem_anos = sorted(list(df_temp['ano'].astype(str).unique()))
+
+    # Ordenar o dataframe para garantir consistência
+    def sort_key_ano(val):
+        try:
+            return int(str(val).split()[0])
+        except Exception:
+            return 9999
+
+    df_temp['sort_ano'] = df_temp['ano'].apply(sort_key_ano)
+    if color_param and color_param in df_temp.columns:
+        df_temp = df_temp.sort_values(by=[color_param, 'sort_ano'])
+    else:
+        df_temp = df_temp.sort_values(by=['sort_ano'])
+
     if chart_type == "Barras":
-        fig = px.bar(registros_por_ano, x='ano', y='Quantidade', color=color_param,
+        fig = px.bar(df_temp, x='ano', y='Quantidade', color=color_param,
                      labels={'ano': 'Ano', 'Quantidade': 'Quantidade'},
                      template='plotly_white', text='Quantidade')
         if agrupamento_selecionado == "Consolidado":
             fig.update_traces(marker_color='#8A2BE2')
         fig.update_traces(textposition='outside')
     elif chart_type == "Linha":
-        fig = px.line(registros_por_ano, x='ano', y='Quantidade', color=color_param,
+        fig = px.line(df_temp, x='ano', y='Quantidade', color=color_param,
                       labels={'ano': 'Ano', 'Quantidade': 'Quantidade'},
                       template='plotly_white', markers=True)
         if agrupamento_selecionado == "Consolidado":
             fig.update_traces(line_color='#8A2BE2')
     elif chart_type == "Área":
-        fig = px.area(registros_por_ano, x='ano', y='Quantidade', color=color_param,
+        fig = px.area(df_temp, x='ano', y='Quantidade', color=color_param,
                       labels={'ano': 'Ano', 'Quantidade': 'Quantidade'},
                       template='plotly_white')
         if agrupamento_selecionado == "Consolidado":
             fig.update_traces(line_color='#8A2BE2')
     else:  # Pizza
-        fig = px.pie(registros_por_ano, names='ano', values='Quantidade', hole=.4,
+        fig = px.pie(df_temp, names='ano', values='Quantidade', hole=.4,
                      color_discrete_sequence=px.colors.sequential.Purples_r)
         fig.update_traces(textinfo='percent+label', textposition='outside')
     fig.update_layout(separators=",.")
+    fig.update_xaxes(type='category', categoryorder='array', categoryarray=ordem_anos)
     return fig
 
 
@@ -313,26 +343,56 @@ def plot_feminicidio_serie_temporal(feminicidios_por_mes, chart_type, agrupament
 
 def plot_feminicidio_por_ano(feminicidios_por_ano, chart_type, agrupamento_selecionado, color_param):
     """Gera o gráfico de feminicídios por ano."""
+    if feminicidios_por_ano.empty:
+        return go.Figure()
+
+    df_temp = feminicidios_por_ano.copy()
+
+    # Obter lista cronológica ordenada de anos
+    raw_anos = [int(str(x).split()[0]) for x in df_temp['ano'].dropna().unique() if str(x).split()[0].isdigit()]
+    if raw_anos:
+        min_a = min(raw_anos)
+        max_a = max(raw_anos)
+        ano_corrente = pd.Timestamp.now().year
+        tem_parcial = any('(Parcial)' in str(x) for x in df_temp['ano'])
+        ordem_anos = [f'{a} (Parcial)' if (a == ano_corrente and tem_parcial) else str(a) for a in range(min_a, max_a + 1)]
+    else:
+        ordem_anos = sorted(list(df_temp['ano'].astype(str).unique()))
+
+    # Ordenar o dataframe para garantir consistência
+    def sort_key_ano(val):
+        try:
+            return int(str(val).split()[0])
+        except Exception:
+            return 9999
+
+    df_temp['sort_ano'] = df_temp['ano'].apply(sort_key_ano)
+    if color_param and color_param in df_temp.columns:
+        df_temp = df_temp.sort_values(by=[color_param, 'sort_ano'])
+    else:
+        df_temp = df_temp.sort_values(by=['sort_ano'])
+
     if chart_type == "Linha":
-        fig = px.line(feminicidios_por_ano, x='ano', y='Quantidade', color=color_param,
+        fig = px.line(df_temp, x='ano', y='Quantidade', color=color_param,
                       labels={'ano': 'Ano', 'Quantidade': 'Quantidade'},
                       template='plotly_white', markers=True)
         if agrupamento_selecionado == "Consolidado":
             fig.update_traces(line_color='#6a1b9a')
     elif chart_type == "Área":
-        fig = px.area(feminicidios_por_ano, x='ano', y='Quantidade', color=color_param,
+        fig = px.area(df_temp, x='ano', y='Quantidade', color=color_param,
                       labels={'ano': 'Ano', 'Quantidade': 'Quantidade'},
                       template='plotly_white')
         if agrupamento_selecionado == "Consolidado":
             fig.update_traces(line_color='#6a1b9a')
     else:  # Barras
-        fig = px.bar(feminicidios_por_ano, x='ano', y='Quantidade', color=color_param,
-                     labels={'ano': 'Ano', 'Quantidade': 'Quantidade'},
-                     template='plotly_white', text='Quantidade')
+        fig = px.bar(df_temp, x='ano', y='Quantidade', color=color_param,
+                      labels={'ano': 'Ano', 'Quantidade': 'Quantidade'},
+                      template='plotly_white', text='Quantidade')
         if agrupamento_selecionado == "Consolidado":
             fig.update_traces(marker_color='#6a1b9a')
         fig.update_traces(textposition='outside')
     fig.update_layout(separators=",.")
+    fig.update_xaxes(type='category', categoryorder='array', categoryarray=ordem_anos)
     return fig
 
 
