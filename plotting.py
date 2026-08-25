@@ -3,6 +3,64 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
+def _criar_choropleth_compativel(data_frame, geojson, locations, featureidkey, color, color_continuous_scale, zoom, center, opacity, labels, hover_name, hover_data):
+    """
+    Cria mapa coroplético compatível tanto com Plotly 6+ (px.choropleth_map)
+    quanto versões anteriores (px.choropleth_mapbox).
+    """
+    if hasattr(px, 'choropleth_map'):
+        try:
+            return px.choropleth_map(
+                data_frame=data_frame,
+                geojson=geojson,
+                locations=locations,
+                featureidkey=featureidkey,
+                color=color,
+                color_continuous_scale=color_continuous_scale,
+                map_style="carto-positron",
+                zoom=zoom,
+                center=center,
+                opacity=opacity,
+                labels=labels,
+                hover_name=hover_name,
+                hover_data=hover_data
+            )
+        except Exception:
+            pass
+
+    if hasattr(px, 'choropleth_mapbox'):
+        try:
+            return px.choropleth_mapbox(
+                data_frame=data_frame,
+                geojson=geojson,
+                locations=locations,
+                featureidkey=featureidkey,
+                color=color,
+                color_continuous_scale=color_continuous_scale,
+                mapbox_style="carto-positron",
+                zoom=zoom,
+                center=center,
+                opacity=opacity,
+                labels=labels,
+                hover_name=hover_name,
+                hover_data=hover_data
+            )
+        except Exception:
+            pass
+
+    return px.choropleth(
+        data_frame=data_frame,
+        geojson=geojson,
+        locations=locations,
+        featureidkey=featureidkey,
+        color=color,
+        color_continuous_scale=color_continuous_scale,
+        labels=labels,
+        hover_name=hover_name,
+        hover_data=hover_data
+    )
+
+
 def plot_mapa_geral(map_df, geojson_sc, color_col, label_text, agrupamento_selecionado):
     """Gera o mapa coroplético para a análise geral."""
     
@@ -23,14 +81,13 @@ def plot_mapa_geral(map_df, geojson_sc, color_col, label_text, agrupamento_selec
         color_col: True
     }
 
-    fig_mapa = px.choropleth_mapbox(
+    fig_mapa = _criar_choropleth_compativel(
         map_df, 
         geojson=geojson_sc, 
         locations='municipio_normalizado',
         featureidkey="properties.NM_MUN_NORMALIZADO",
         color=color_col, 
         color_continuous_scale="Reds", 
-        mapbox_style="carto-positron",
         zoom=6,
         center={"lat": -27.59, "lon": -50.52}, 
         opacity=0.7,
@@ -270,14 +327,13 @@ def plot_mapa_feminicidio(map_df_fem, geojson_sc, agrupamento_selecionado):
         'quantidade': True
     }
 
-    fig = px.choropleth_mapbox(
+    fig = _criar_choropleth_compativel(
         map_df_fem, 
         geojson=geojson_sc, 
         locations='municipio_normalizado',
         featureidkey="properties.NM_MUN_NORMALIZADO",
         color='quantidade', 
         color_continuous_scale="Reds", 
-        mapbox_style="carto-positron", 
         zoom=6,
         center={"lat": -27.59, "lon": -50.52}, 
         opacity=0.7,
@@ -615,23 +671,26 @@ def plot_mapa_letalidade(map_df_letalidade, geojson_sc, agrupamento_selecionado=
 
     hover_data_config = {
         'municipio_normalizado': False,
-        'mesoregiao': True if 'mesoregiao' in map_df_letalidade.columns else False,
-        'associacao': True if 'associacao' in map_df_letalidade.columns else False,
-        'total_feminicidios': ':.0f' if 'total_feminicidios' in map_df_letalidade.columns else False,
-        'total_ocorrencias': ':.0f' if 'total_ocorrencias' in map_df_letalidade.columns else False,
         'indice_letalidade': ':.2f'
     }
+    if 'mesoregiao' in map_df_letalidade.columns:
+        hover_data_config['mesoregiao'] = True
+    if 'associacao' in map_df_letalidade.columns:
+        hover_data_config['associacao'] = True
+    if 'total_feminicidios' in map_df_letalidade.columns:
+        hover_data_config['total_feminicidios'] = ':.0f'
+    if 'total_ocorrencias' in map_df_letalidade.columns:
+        hover_data_config['total_ocorrencias'] = ':.0f'
 
     hover_name_col = 'municipio' if 'municipio' in map_df_letalidade.columns and map_df_letalidade['municipio'].notna().any() else 'municipio_normalizado'
 
-    fig = px.choropleth_mapbox(
+    fig = _criar_choropleth_compativel(
         map_df_letalidade,
         geojson=geojson_sc,
         locations='municipio_normalizado',
         featureidkey="properties.NM_MUN_NORMALIZADO",
         color='indice_letalidade',
         color_continuous_scale="Reds",
-        mapbox_style="carto-positron",
         zoom=6,
         center={"lat": -27.59, "lon": -50.52},
         opacity=0.7,
