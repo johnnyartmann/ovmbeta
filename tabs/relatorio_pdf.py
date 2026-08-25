@@ -355,6 +355,30 @@ def _fmt_br(val):
         return str(val)
 
 
+def _preparar_top_categorias_piv(df_data, index_col, category_col, value_col, top_n=5):
+    """
+    Cria pivot table agregando categorias além do Top N em 'Outros...' para
+    evitar sobrecarga visual e esmagamento de gráficos no PDF.
+    """
+    df = df_data.copy()
+    totais_por_cat = df.groupby(category_col, observed=True)[value_col].sum().sort_values(ascending=False)
+
+    if len(totais_por_cat) <= top_n:
+        piv = df.pivot_table(index=index_col, columns=category_col, values=value_col, fill_value=0, observed=True)
+        piv = piv.reindex(columns=totais_por_cat.index)
+        return piv
+
+    top_cats = list(totais_por_cat.head(top_n).index)
+    df[category_col] = df[category_col].astype(str)
+    df[category_col] = df[category_col].apply(lambda x: x if x in top_cats else 'Outros...')
+
+    piv = df.pivot_table(index=index_col, columns=category_col, values=value_col, aggfunc='sum', fill_value=0, observed=True)
+    ordem_cols = [c for c in top_cats if c in piv.columns]
+    if 'Outros...' in piv.columns:
+        ordem_cols.append('Outros...')
+    return piv.reindex(columns=ordem_cols)
+
+
 def _fig_to_png_bytes(fig, dpi=180):
     """Exporta a figura matplotlib diretamente para bytes PNG de alta resolução."""
     buf = io.BytesIO()
@@ -370,14 +394,14 @@ def render_chart_serie_temporal(df_temporal, agrupamento="Consolidado", color_p=
     ax.set_facecolor('white')
 
     if color_p and color_p in df_temporal.columns and agrupamento != "Consolidado":
-        categorias = df_temporal[color_p].unique()
-        palette = [COLOR_PRIMARY, COLOR_SECONDARY, '#1E88E5', '#43A047', '#FB8C00', '#E53935', '#8E24AA', '#3949AB']
-        for idx, cat in enumerate(categorias[:8]):
-            sub = df_temporal[df_temporal[color_p] == cat].sort_values('ano_mes')
-            ax.plot(range(len(sub)), sub['quantidade'], marker='o', markersize=3, label=str(cat)[:20],
+        df_piv = _preparar_top_categorias_piv(df_temporal, 'ano_mes', color_p, 'quantidade', top_n=5)
+        palette = [COLOR_PRIMARY, COLOR_SECONDARY, '#1E88E5', '#43A047', '#FB8C00', '#757575']
+        for idx, cat in enumerate(df_piv.columns):
+            lbl = str(cat)[:18] + ('..' if len(str(cat)) > 18 else '')
+            ax.plot(range(len(df_piv)), df_piv[cat], marker='o', markersize=3, label=lbl,
                     color=palette[idx % len(palette)], linewidth=1.8)
-        ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=7, loc='upper left')
-        x_labels = df_temporal['ano_mes'].unique()
+        ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.8, loc='upper left', ncol=min(len(df_piv.columns), 3))
+        x_labels = df_piv.index.values
     else:
         df_sorted = df_temporal.sort_values('ano_mes')
         x = range(len(df_sorted))
@@ -412,9 +436,11 @@ def render_chart_por_ano(registros_por_ano, agrupamento="Consolidado", color_p=N
     ax.set_facecolor('white')
 
     if color_p and color_p in registros_por_ano.columns and agrupamento != "Consolidado":
-        df_piv = registros_por_ano.pivot_table(index='ano', columns=color_p, values='Quantidade', fill_value=0)
-        df_piv.plot(kind='bar', ax=ax, colormap='tab10', width=0.8)
-        ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5)
+        df_piv = _preparar_top_categorias_piv(registros_por_ano, 'ano', color_p, 'Quantidade', top_n=5)
+        palette = [COLOR_PRIMARY, COLOR_SECONDARY, '#1E88E5', '#43A047', '#FB8C00', '#757575']
+        df_piv.plot(kind='bar', ax=ax, color=palette[:len(df_piv.columns)], width=0.8)
+        labels_leg = [str(c)[:18] + ('..' if len(str(c)) > 18 else '') for c in df_piv.columns]
+        ax.legend(labels_leg, frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5, loc='upper right', ncol=min(len(df_piv.columns), 3))
     else:
         bars = ax.bar(registros_por_ano['ano'].astype(str), registros_por_ano['Quantidade'], color=COLOR_SECONDARY, width=0.55, edgecolor='none')
         max_y = registros_por_ano['Quantidade'].max() if not registros_por_ano.empty else 1
@@ -444,44 +470,51 @@ def render_chart_por_mes(registros_por_mes):
     fig, ax = plt.subplots(figsize=(9.0, 3.8))
     ax.set_facecolor('white')
 
-    bars = ax.bar(registros_por_mes['Mês'], registros_por_mes['Quantidade'], color=COLOR_PRIMARY, width=0.6, edgecolor='none')
-    max_y = registros_por_mes['Quantidade'].max() if not registros_por_mes.empty else 1
+    col_mes = 'Mês' if 'Mês' in registros_por_mes.columns else ('mes' if 'mes' in registros_por_mes.columns else registros_por_mes.columns[0])
+    col_qtd = 'Quantidade' if 'Quantidade' in registros_por_mes.columns else registros_por_mes.columns[1]
+
+    bars = ax.bar(registros_por_mes[col_mes].astype(str), registros_por_mes[col_qtd], color=COLOR_PRIMARY, width=0.6, edgecolor='none')
+    max_y = registros_por_mes[col_qtd].max() if not registros_por_mes.empty else 1
     for bar in bars:
         h = bar.get_height()
-        ax.annotate(_fmt_br(h),
-                    xy=(bar.get_x() + bar.get_width() / 2, h),
-                    xytext=(0, 3),
-                    textcoords="offset points",
-                    ha='center', va='bottom', fontsize=7.0, fontweight='bold', color=COLOR_SECONDARY)
+        if h > 0:
+            ax.annotate(_fmt_br(h),
+                        xy=(bar.get_x() + bar.get_width() / 2, h),
+                        xytext=(0, 3),
+                        textcoords="offset points",
+                        ha='center', va='bottom', fontsize=6.8, color=COLOR_TEXT_PLOT)
     ax.set_ylim(0, max_y * 1.15)
 
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: _fmt_br(v)))
-    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=8)
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
     ax.grid(axis='y', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.spines['left'].set_color('#BDBDBD')
     ax.spines['bottom'].set_color('#BDBDBD')
-    ax.set_ylabel('Acumulado no Mês', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
+    ax.set_ylabel('Total Acumulado', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
 
     return _fig_to_png_bytes(fig)
 
 
 def render_chart_dia_semana(registros_por_dia):
-    """Página 4 - Gráfico 1: Volume de Crimes por Dia da Semana."""
+    """Página 4 - Gráfico 1: Distribuição por Dia da Semana."""
     fig, ax = plt.subplots(figsize=(9.0, 3.8))
     ax.set_facecolor('white')
 
-    cores = [COLOR_BAR_ACCENT if d in ['Sáb', 'Dom'] else COLOR_SECONDARY for d in registros_por_dia['Dia da Semana']]
-    bars = ax.bar(registros_por_dia['Dia da Semana'], registros_por_dia['Quantidade'], color=cores, width=0.55)
-    max_y = registros_por_dia['Quantidade'].max() if not registros_por_dia.empty else 1
+    col_dia = 'Dia da Semana' if 'Dia da Semana' in registros_por_dia.columns else ('dia_semana' if 'dia_semana' in registros_por_dia.columns else registros_por_dia.columns[0])
+    col_qtd = 'Quantidade' if 'Quantidade' in registros_por_dia.columns else registros_por_dia.columns[1]
+
+    cores = [COLOR_PRIMARY if str(d) in ['Sábado', 'Domingo', 'Sáb', 'Dom', 'Sat', 'Sun'] else COLOR_SECONDARY for d in registros_por_dia[col_dia]]
+    bars = ax.bar(registros_por_dia[col_dia].astype(str), registros_por_dia[col_qtd], color=cores, width=0.6, edgecolor='none')
+    max_y = registros_por_dia[col_qtd].max() if not registros_por_dia.empty else 1
     for bar in bars:
         h = bar.get_height()
         ax.annotate(_fmt_br(h),
                     xy=(bar.get_x() + bar.get_width() / 2, h),
                     xytext=(0, 3),
                     textcoords="offset points",
-                    ha='center', va='bottom', fontsize=7.5, fontweight='bold', color=COLOR_PRIMARY)
+                    ha='center', va='bottom', fontsize=7.2, fontweight='bold', color=COLOR_PRIMARY)
     ax.set_ylim(0, max_y * 1.15)
 
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: _fmt_br(v)))
@@ -491,7 +524,7 @@ def render_chart_dia_semana(registros_por_dia):
     ax.spines['right'].set_visible(False)
     ax.spines['left'].set_color('#BDBDBD')
     ax.spines['bottom'].set_color('#BDBDBD')
-    ax.set_ylabel('Quantidade', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
+    ax.set_ylabel('Ocorrências', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
 
     return _fig_to_png_bytes(fig)
 
@@ -501,25 +534,30 @@ def render_chart_faixa_etaria(registros_por_faixa):
     fig, ax = plt.subplots(figsize=(9.0, 3.8))
     ax.set_facecolor('white')
 
-    bars = ax.bar(registros_por_faixa['Faixa Etária'].astype(str), registros_por_faixa['Quantidade'], color=COLOR_LIGHT, width=0.6)
-    max_y = registros_por_faixa['Quantidade'].max() if not registros_por_faixa.empty else 1
+    col_faixa = 'Faixa Etária' if 'Faixa Etária' in registros_por_faixa.columns else ('faixa_etaria' if 'faixa_etaria' in registros_por_faixa.columns else registros_por_faixa.columns[0])
+    col_qtd = 'Quantidade' if 'Quantidade' in registros_por_faixa.columns else registros_por_faixa.columns[1]
+
+    bars = ax.bar(registros_por_faixa[col_faixa].astype(str), registros_por_faixa[col_qtd],
+                  color=COLOR_SECONDARY, width=0.6, edgecolor='none')
+    max_y = registros_por_faixa[col_qtd].max() if not registros_por_faixa.empty else 1
     for bar in bars:
         h = bar.get_height()
         ax.annotate(_fmt_br(h),
                     xy=(bar.get_x() + bar.get_width() / 2, h),
                     xytext=(0, 3),
                     textcoords="offset points",
-                    ha='center', va='bottom', fontsize=7.0, fontweight='bold', color=COLOR_PRIMARY)
+                    ha='center', va='bottom', fontsize=7.2, fontweight='bold', color=COLOR_PRIMARY)
     ax.set_ylim(0, max_y * 1.15)
 
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: _fmt_br(v)))
-    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=8)
+    ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha='right', fontsize=7.2)
     ax.grid(axis='y', linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.spines['left'].set_color('#BDBDBD')
     ax.spines['bottom'].set_color('#BDBDBD')
-    ax.set_ylabel('Total Vítimas', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
+    ax.set_ylabel('Ocorrências', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
 
     return _fig_to_png_bytes(fig)
 
@@ -530,12 +568,14 @@ def render_chart_tipo_crime(registros_por_fato, agrupamento="Consolidado", color
     ax.set_facecolor('white')
 
     if color_p and color_p in registros_por_fato.columns and agrupamento != "Consolidado":
-        df_piv = registros_por_fato.pivot_table(index='fato_comunicado', columns=color_p, values='Quantidade', fill_value=0)
+        df_piv = _preparar_top_categorias_piv(registros_por_fato, 'fato_comunicado', color_p, 'Quantidade', top_n=5)
         df_piv['total_tmp'] = df_piv.sum(axis=1)
         df_piv = df_piv.sort_values('total_tmp')
         df_piv = df_piv.drop(columns=['total_tmp'])
-        df_piv.plot(kind='barh', ax=ax, colormap='tab10', width=0.8)
-        ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5)
+        palette = [COLOR_PRIMARY, COLOR_SECONDARY, '#1E88E5', '#43A047', '#FB8C00', '#757575']
+        df_piv.plot(kind='barh', ax=ax, color=palette[:len(df_piv.columns)], width=0.8)
+        labels_leg = [str(c)[:18] + ('..' if len(str(c)) > 18 else '') for c in df_piv.columns]
+        ax.legend(labels_leg, frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5, loc='lower right', ncol=min(len(df_piv.columns), 3))
     else:
         df_all = registros_por_fato.iloc[::-1]
         y_pos = range(len(df_all))
@@ -591,14 +631,16 @@ def render_chart_vulnerabilidade(df_plot):
 
 
 def render_chart_feminicidio_serie(fem_por_mes, agrupamento="Consolidado", color_p=None):
-    """Página 9 - Gráfico 1: Série Temporal de Feminicídios."""
+    """Página 12 - Gráfico 1: Série Temporal de Feminicídios."""
     fig, ax = plt.subplots(figsize=(9.0, 3.8))
     ax.set_facecolor('white')
 
     if color_p and color_p in fem_por_mes.columns and agrupamento != "Consolidado":
-        df_piv = fem_por_mes.pivot_table(index='Mês/Ano', columns=color_p, values='Quantidade', fill_value=0)
-        df_piv.plot(kind='bar', stacked=True, ax=ax, colormap='tab10', width=0.8)
-        ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5)
+        df_piv = _preparar_top_categorias_piv(fem_por_mes, 'Mês/Ano', color_p, 'Quantidade', top_n=5)
+        palette = ['#880E4F', '#C2185B', '#E91E63', '#AD1457', '#F06292', '#757575']
+        df_piv.plot(kind='bar', stacked=True, ax=ax, color=palette[:len(df_piv.columns)], width=0.8)
+        labels_leg = [str(c)[:18] + ('..' if len(str(c)) > 18 else '') for c in df_piv.columns]
+        ax.legend(labels_leg, frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5, loc='upper right', ncol=min(len(df_piv.columns), 3))
     else:
         df_sorted = fem_por_mes.sort_values('Mês/Ano')
         bars = ax.bar(range(len(df_sorted)), df_sorted['Quantidade'], color='#C2185B', width=0.6)
@@ -624,14 +666,16 @@ def render_chart_feminicidio_serie(fem_por_mes, agrupamento="Consolidado", color
 
 
 def render_chart_feminicidio_ano(fem_por_ano, agrupamento="Consolidado", color_p=None):
-    """Página 9 - Gráfico 2: Feminicídios por Ano."""
+    """Página 12 - Gráfico 2: Feminicídios por Ano."""
     fig, ax = plt.subplots(figsize=(9.0, 3.8))
     ax.set_facecolor('white')
 
     if color_p and color_p in fem_por_ano.columns and agrupamento != "Consolidado":
-        df_piv = fem_por_ano.pivot_table(index='ano', columns=color_p, values='Quantidade', fill_value=0)
-        df_piv.plot(kind='bar', ax=ax, colormap='tab10', width=0.8)
-        ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5)
+        df_piv = _preparar_top_categorias_piv(fem_por_ano, 'ano', color_p, 'Quantidade', top_n=5)
+        palette = ['#880E4F', '#C2185B', '#E91E63', '#AD1457', '#F06292', '#757575']
+        df_piv.plot(kind='bar', ax=ax, color=palette[:len(df_piv.columns)], width=0.8)
+        labels_leg = [str(c)[:18] + ('..' if len(str(c)) > 18 else '') for c in df_piv.columns]
+        ax.legend(labels_leg, frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5, loc='upper right', ncol=min(len(df_piv.columns), 3))
     else:
         bars = ax.bar(fem_por_ano['ano'].astype(str), fem_por_ano['Quantidade'], color='#880E4F', width=0.55)
         max_y = fem_por_ano['Quantidade'].max() if not fem_por_ano.empty else 1
@@ -657,14 +701,16 @@ def render_chart_feminicidio_ano(fem_por_ano, agrupamento="Consolidado", color_p
 
 
 def render_chart_vinculo_autor(vinculo, agrupamento="Consolidado", color_p=None):
-    """Página 10 - Gráfico 1: Vínculo / Relação com Autor."""
+    """Página 13 - Gráfico 1: Vínculo / Relação com Autor."""
     fig, ax = plt.subplots(figsize=(9.0, 3.8))
     ax.set_facecolor('white')
 
     if color_p and color_p in vinculo.columns and agrupamento != "Consolidado":
-        df_piv = vinculo.pivot_table(index='relacao_autor', columns=color_p, values='Quantidade', fill_value=0)
-        df_piv.plot(kind='barh', ax=ax, colormap='tab10', width=0.8)
-        ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5)
+        df_piv = _preparar_top_categorias_piv(vinculo, 'relacao_autor', color_p, 'Quantidade', top_n=5)
+        palette = ['#880E4F', '#C2185B', '#E91E63', '#AD1457', '#F06292', '#757575']
+        df_piv.plot(kind='barh', ax=ax, color=palette[:len(df_piv.columns)], width=0.8)
+        labels_leg = [str(c)[:18] + ('..' if len(str(c)) > 18 else '') for c in df_piv.columns]
+        ax.legend(labels_leg, frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5, loc='lower right', ncol=min(len(df_piv.columns), 3))
     else:
         df_top = vinculo.head(6).iloc[::-1]
         y_pos = range(len(df_top))
@@ -695,14 +741,16 @@ def render_chart_vinculo_autor(vinculo, agrupamento="Consolidado", color_p=None)
 
 
 def render_chart_meio_crime(meio, agrupamento="Consolidado", color_p=None):
-    """Página 10 - Gráfico 2: Meio Empregado no Feminicídio."""
+    """Página 13 - Gráfico 2: Meio Empregado no Feminicídio."""
     fig, ax = plt.subplots(figsize=(9.0, 3.8))
     ax.set_facecolor('white')
 
     if color_p and color_p in meio.columns and agrupamento != "Consolidado":
-        df_piv = meio.pivot_table(index='meio_crime', columns=color_p, values='Quantidade', fill_value=0)
-        df_piv.plot(kind='barh', ax=ax, colormap='tab10', width=0.8)
-        ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5)
+        df_piv = _preparar_top_categorias_piv(meio, 'meio_crime', color_p, 'Quantidade', top_n=5)
+        palette = ['#880E4F', '#C2185B', '#E91E63', '#AD1457', '#F06292', '#757575']
+        df_piv.plot(kind='barh', ax=ax, color=palette[:len(df_piv.columns)], width=0.8)
+        labels_leg = [str(c)[:18] + ('..' if len(str(c)) > 18 else '') for c in df_piv.columns]
+        ax.legend(labels_leg, frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5, loc='lower right', ncol=min(len(df_piv.columns), 3))
     else:
         df_top = meio.head(6).iloc[::-1]
         y_pos = range(len(df_top))
@@ -1390,13 +1438,27 @@ def add_table(pdf, df, col_widths=None, max_rows=55, title=None):
         for i, col in enumerate(columns):
             val = row[col]
             val_str = str(val) if pd.notna(val) else '-'
-            if isinstance(val, float):
-                val_str = f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            elif isinstance(val, (int, np.integer)):
+            col_str = str(col)
+            col_lower = col_str.lower()
+
+            if isinstance(val, (int, np.integer)):
                 val_str = f"{val:,}".replace(",", ".")
+            elif isinstance(val, (float, np.floating)):
+                if any(p in col_lower for p in ['população', 'populacao', 'habitantes']) or (float(val).is_integer() and any(p in col_lower for p in ['feminicídios', 'feminicidios', 'total', 'quantidade', 'casos'])):
+                    val_str = f"{int(round(val)):,}".replace(",", ".")
+                else:
+                    val_str = f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            elif isinstance(val, str) and not (i in text_cols_idx):
+                try:
+                    num_val = float(val)
+                    if any(p in col_lower for p in ['população', 'populacao', 'habitantes']):
+                        val_str = f"{int(round(num_val)):,}".replace(",", ".")
+                    else:
+                        val_str = f"{num_val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                except (ValueError, TypeError):
+                    pass
 
             align = 'L' if i in text_cols_idx else 'R'
-            col_str = str(col)
             if 'Δ' in col_str or 'Dif' in col_str or 'Tend' in col_str:
                 try:
                     num_val = float(val) if not pd.isna(val) else 0
