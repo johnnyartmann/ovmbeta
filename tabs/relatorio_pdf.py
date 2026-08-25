@@ -1505,6 +1505,40 @@ def gerar_relatorio_pdf(
         'data_emissao': datetime.now().strftime('%d/%m/%Y às %H:%M')
     }
 
+    # Determina a descrição dinâmica de localidade
+    df_ref = df_geral if not df_geral.empty else df_feminicidio
+    muns_ref = [m for m in df_ref['municipio'].unique() if pd.notna(m) and str(m).strip() != ''] if df_ref is not None and not df_ref.empty else []
+    assocs_ref = [a for a in df_ref['associacao'].unique() if pd.notna(a) and str(a).strip() not in ['', 'Não informado']] if df_ref is not None and not df_ref.empty else []
+    mesos_ref = [m for m in df_ref['mesoregiao'].unique() if pd.notna(m) and str(m).strip() not in ['', 'Não informado']] if df_ref is not None and not df_ref.empty else []
+
+    if len(muns_ref) == 1:
+        local_txt = f"no município de {muns_ref[0].strip().title()}"
+        local_panorama_txt = f"no Município de {muns_ref[0].strip().title()}"
+    elif 1 < len(muns_ref) <= 3:
+        muns_fmt = ", ".join([m.title() for m in muns_ref[:-1]]) + f" e {muns_ref[-1].title()}"
+        local_txt = f"nos municípios de {muns_fmt}"
+        local_panorama_txt = f"nos Municípios de {muns_fmt}"
+    elif len(assocs_ref) == 1:
+        local_txt = f"na região da {assocs_ref[0].strip()}"
+        local_panorama_txt = f"na Região da {assocs_ref[0].strip()}"
+    elif 1 < len(assocs_ref) <= 3 and len(muns_ref) < 200:
+        assocs_fmt = ", ".join(assocs_ref[:-1]) + f" e {assocs_ref[-1]}"
+        local_txt = f"nas regiões das associações {assocs_fmt}"
+        local_panorama_txt = f"nas Regiões das Associações {assocs_fmt}"
+    elif len(mesos_ref) == 1:
+        local_txt = f"na mesorregião {mesos_ref[0].strip()}"
+        local_panorama_txt = f"na Mesorregião {mesos_ref[0].strip()}"
+    elif 1 < len(mesos_ref) <= 3 and len(muns_ref) < 200:
+        mesos_fmt = ", ".join(mesos_ref[:-1]) + f" e {mesos_ref[-1]}"
+        local_txt = f"nas mesorregiões {mesos_fmt}"
+        local_panorama_txt = f"nas Mesorregiões {mesos_fmt}"
+    elif len(muns_ref) < 290:
+        local_txt = f"nos {len(muns_ref)} municípios selecionados"
+        local_panorama_txt = f"nos {len(muns_ref)} Municípios Selecionados"
+    else:
+        local_txt = "em Santa Catarina"
+        local_panorama_txt = "no Estado de Santa Catarina"
+
     # Logo
     logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logo_ovm.png')
     if not os.path.exists(logo_path):
@@ -1521,7 +1555,7 @@ def gerar_relatorio_pdf(
     add_section_header(
         pdf,
         "Resumo Executivo — Análise Geral de Ocorrências",
-        "Panorama dos registros de violência contra a mulher no Estado de Santa Catarina"
+        f"Panorama dos registros de violência contra a mulher {local_panorama_txt}"
     )
 
     total_registros = len(df_geral)
@@ -1556,7 +1590,7 @@ def gerar_relatorio_pdf(
     pdf.multi_cell(
         190, 4.2,
         f"Este documento apresenta o consolidado dos registros oficiais de violência doméstica e familiar "
-        f"contra a mulher em Santa Catarina entre {data_ini_str} e {data_fim_str}. "
+        f"contra a mulher {local_txt} entre {data_ini_str} e {data_fim_str}. "
         f"No período analisado foram contabilizadas {total_registros:,}".replace(',', '.') + f" ocorrências. "
         f"A idade média das vítimas é de {media_idade:.1f} anos, com {pct_fds:.1f}% das infrações ocorrendo aos finais de semana."
     )
@@ -1800,7 +1834,7 @@ def gerar_relatorio_pdf(
     add_section_header(
         pdf,
         "Resumo Executivo — Análise de Feminicídios",
-        "Indicadores críticos de letalidade e fatores de risco em Santa Catarina"
+        f"Indicadores críticos de letalidade e fatores de risco {local_panorama_txt}"
     )
     total_fem = len(df_feminicidio)
     if total_fem > 0:
@@ -1823,7 +1857,7 @@ def gerar_relatorio_pdf(
         pdf.multi_cell(
             190, 4.2,
             f"A análise de feminicídios investiga as mortes consumadas de mulheres por razões da condição de sexo feminino. "
-            f"No período foram registrados {total_fem} feminicídios em Santa Catarina. "
+            f"No período foram registrados {total_fem} feminicídios {local_txt}. "
             f"Em {pct_bo:.1f}% dos casos a vítima já havia registrado Boletim de Ocorrência prévio por violência doméstica contra o próprio agressor, "
             f"e em {pct_hist:.1f}% dos casos o agressor já tinha passagens policiais prévias por violência doméstica."
         )
