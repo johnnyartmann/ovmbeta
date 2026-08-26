@@ -184,23 +184,27 @@ def criar_tabela_populacional_agrupada(df_crimes, df_pop, df_regioes, agrupament
         "Associação de Municípios": "associacao"
     }[agrupamento]
 
-    crimes_agrupado = df_crimes[coluna_agrupamento].value_counts().reset_index()
+    presentes = [p for p in df_crimes[coluna_agrupamento].dropna().unique() if str(p).strip() not in ['', 'Não informado']]
+    crimes_series = df_crimes[coluna_agrupamento].value_counts()
+    crimes_series = crimes_series[crimes_series.index.isin(presentes) & (crimes_series > 0)]
+    crimes_agrupado = crimes_series.reset_index()
     crimes_agrupado.columns = [coluna_agrupamento, 'total_fatos']
 
     if agrupamento == "Município":
-        pop_agrupada = df_pop_com_regioes[[coluna_agrupamento, 'populacao_feminina']]
+        pop_agrupada = df_pop_com_regioes[df_pop_com_regioes[coluna_agrupamento].isin(presentes)][[coluna_agrupamento, 'populacao_feminina']].drop_duplicates(subset=[coluna_agrupamento])
     else:
-        pop_agrupada = df_pop_com_regioes.groupby(coluna_agrupamento, observed=True)['populacao_feminina'].sum().reset_index()
+        df_pop_sub = df_pop_com_regioes[df_pop_com_regioes[coluna_agrupamento].isin(presentes)]
+        pop_agrupada = df_pop_sub.groupby(coluna_agrupamento, observed=True)['populacao_feminina'].sum().reset_index()
 
     df_agregado = pd.merge(crimes_agrupado, pop_agrupada, on=coluna_agrupamento, how='left')
 
     df_agregado['media_anual_fatos'] = df_agregado['total_fatos'] / num_anos
     df_agregado['taxa_por_mil_mulheres'] = (
-                                                      (df_agregado['media_anual_fatos'] / df_agregado[
-                                                          'populacao_feminina']) * 1000).fillna(0)
+        (df_agregado['media_anual_fatos'] / df_agregado['populacao_feminina'].replace(0, pd.NA)) * 1000
+    ).fillna(0)
     df_agregado['percentual_mulheres_vitimas'] = (
-                                                            (df_agregado['media_anual_fatos'] / df_agregado[
-                                                                'populacao_feminina']) * 100).fillna(0)
+        (df_agregado['media_anual_fatos'] / df_agregado['populacao_feminina'].replace(0, pd.NA)) * 100
+    ).fillna(0)
 
     tabela_final = df_agregado.rename(columns={
         coluna_agrupamento: agrupamento,
