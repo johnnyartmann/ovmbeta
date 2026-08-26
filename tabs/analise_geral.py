@@ -509,7 +509,7 @@ def render(df_geral_filtrado, df_feminicidio_filtrado, df_populacao, df_regioes,
     with col_graf3:
     
         st.subheader("Distribuição por Faixa Etária da Vítima")
-        chart_type_faixa_etaria = st.selectbox("Tipo de Gráfico", ("Barras", "Pizza", "Linha", "Área"), key="chart_type_faixa_etaria")
+        chart_type_faixa_etaria = st.selectbox("Tipo de Gráfico", ("Barras", "Pizza"), key="chart_type_faixa_etaria")
         df_faixa_etaria = df_geral_filtrado.dropna(subset=['idade_vitima']).copy()
         bins = [0, 12, 17, 29, 40, 50, 60, 70, 79, 120]
         labels = ['0-12 anos', '13-17 anos', '18-29 anos', '30-40 anos', '41-50 anos', '51-60 anos', '61-70 anos',
