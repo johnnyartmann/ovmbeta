@@ -271,7 +271,11 @@ if not df_geral.empty:
                         agrupamento=st.session_state.agrupamento_selecionado,
                         data_inicial=st.session_state.data_inicial,
                         data_final=st.session_state.data_final,
-                        idade_selecionada=idade_selecionada
+                        idade_selecionada=idade_selecionada,
+                        crimes_selecionados=fato_selecionado,
+                        municipios_selecionados=municipio_selecionado,
+                        mesorregioes_selecionadas=mesoregiao_selecionado,
+                        associacoes_selecionadas=associacao_selecionado
                     )
                     st.session_state['pdf_gerado_bytes'] = pdf_bytes
                     st.session_state['pdf_gerado_ts'] = datetime.now().strftime("%Y%m%d_%H%M%S")
