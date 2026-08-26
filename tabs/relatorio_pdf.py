@@ -701,18 +701,36 @@ def render_chart_feminicidio_ano(fem_por_ano, agrupamento="Consolidado", color_p
 
 
 def render_chart_vinculo_autor(vinculo, agrupamento="Consolidado", color_p=None):
-    """Página 13 - Gráfico 1: Vínculo / Relação com Autor."""
+    """Página 13 - Gráfico 1: Vínculo / Relação do Autor com a Vítima."""
     fig, ax = plt.subplots(figsize=(9.0, 3.8))
     ax.set_facecolor('white')
 
     if color_p and color_p in vinculo.columns and agrupamento != "Consolidado":
         df_piv = _preparar_top_categorias_piv(vinculo, 'relacao_autor', color_p, 'Quantidade', top_n=5)
-        palette = ['#880E4F', '#C2185B', '#E91E63', '#AD1457', '#F06292', '#757575']
-        df_piv.plot(kind='barh', ax=ax, color=palette[:len(df_piv.columns)], width=0.8)
+        totais = df_piv.sum(axis=1).sort_values(ascending=True)
+        totais = totais[totais > 0]
+        if len(totais) > 10:
+            totais = totais.tail(10)
+        df_piv = df_piv.loc[totais.index]
+
+        palette = ['#880E4F', '#C2185B', '#E91E63', '#AD1457', '#F06292', '#9E9E9E']
+        df_piv.plot(kind='barh', stacked=True, ax=ax, color=palette[:len(df_piv.columns)], width=0.68)
+
+        max_x = totais.max() if not totais.empty else 1
+        for idx, (rel, tot) in enumerate(totais.items()):
+            ax.annotate(f"{int(round(tot))}",
+                        xy=(tot, idx),
+                        xytext=(4, 0),
+                        textcoords="offset points",
+                        ha='left', va='center', fontsize=7.2, fontweight='bold', color='#880E4F')
+        ax.set_xlim(0, max_x * 1.18)
+
         labels_leg = [str(c)[:18] + ('..' if len(str(c)) > 18 else '') for c in df_piv.columns]
         ax.legend(labels_leg, frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5, loc='lower right', ncol=min(len(df_piv.columns), 3))
     else:
-        df_top = vinculo.head(6).iloc[::-1]
+        df_top = vinculo[vinculo['Quantidade'] > 0].sort_values('Quantidade', ascending=True)
+        if len(df_top) > 10:
+            df_top = df_top.tail(10)
         y_pos = range(len(df_top))
         labels = [str(x)[:26] + '..' if len(str(x)) > 26 else str(x) for x in df_top['relacao_autor']]
         bars = ax.barh(y_pos, df_top['Quantidade'], color='#AD1457', height=0.6)
@@ -721,12 +739,12 @@ def render_chart_vinculo_autor(vinculo, agrupamento="Consolidado", color_p=None)
         max_x = df_top['Quantidade'].max() if not df_top.empty else 1
         for bar in bars:
             w = bar.get_width()
-            ax.annotate(_fmt_br(w),
+            ax.annotate(f"{int(round(w))}",
                         xy=(w, bar.get_y() + bar.get_height() / 2),
                         xytext=(4, 0),
                         textcoords="offset points",
                         ha='left', va='center', fontsize=7.5, fontweight='bold', color='#880E4F')
-        ax.set_xlim(0, max_x * 1.2)
+        ax.set_xlim(0, max_x * 1.18)
 
     ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: _fmt_br(v)))
     ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
@@ -747,12 +765,30 @@ def render_chart_meio_crime(meio, agrupamento="Consolidado", color_p=None):
 
     if color_p and color_p in meio.columns and agrupamento != "Consolidado":
         df_piv = _preparar_top_categorias_piv(meio, 'meio_crime', color_p, 'Quantidade', top_n=5)
-        palette = ['#880E4F', '#C2185B', '#E91E63', '#AD1457', '#F06292', '#757575']
-        df_piv.plot(kind='barh', ax=ax, color=palette[:len(df_piv.columns)], width=0.8)
+        totais = df_piv.sum(axis=1).sort_values(ascending=True)
+        totais = totais[totais > 0]
+        if len(totais) > 10:
+            totais = totais.tail(10)
+        df_piv = df_piv.loc[totais.index]
+
+        palette = ['#880E4F', '#C2185B', '#E91E63', '#AD1457', '#F06292', '#9E9E9E']
+        df_piv.plot(kind='barh', stacked=True, ax=ax, color=palette[:len(df_piv.columns)], width=0.68)
+
+        max_x = totais.max() if not totais.empty else 1
+        for idx, (me, tot) in enumerate(totais.items()):
+            ax.annotate(f"{int(round(tot))}",
+                        xy=(tot, idx),
+                        xytext=(4, 0),
+                        textcoords="offset points",
+                        ha='left', va='center', fontsize=7.2, fontweight='bold', color='#880E4F')
+        ax.set_xlim(0, max_x * 1.18)
+
         labels_leg = [str(c)[:18] + ('..' if len(str(c)) > 18 else '') for c in df_piv.columns]
         ax.legend(labels_leg, frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5, loc='lower right', ncol=min(len(df_piv.columns), 3))
     else:
-        df_top = meio.head(6).iloc[::-1]
+        df_top = meio[meio['Quantidade'] > 0].sort_values('Quantidade', ascending=True)
+        if len(df_top) > 10:
+            df_top = df_top.tail(10)
         y_pos = range(len(df_top))
         labels = [str(x)[:26] + '..' if len(str(x)) > 26 else str(x) for x in df_top['meio_crime']]
         bars = ax.barh(y_pos, df_top['Quantidade'], color='#C2185B', height=0.6)
@@ -761,12 +797,12 @@ def render_chart_meio_crime(meio, agrupamento="Consolidado", color_p=None):
         max_x = df_top['Quantidade'].max() if not df_top.empty else 1
         for bar in bars:
             w = bar.get_width()
-            ax.annotate(_fmt_br(w),
+            ax.annotate(f"{int(round(w))}",
                         xy=(w, bar.get_y() + bar.get_height() / 2),
                         xytext=(4, 0),
                         textcoords="offset points",
                         ha='left', va='center', fontsize=7.5, fontweight='bold', color='#880E4F')
-        ax.set_xlim(0, max_x * 1.2)
+        ax.set_xlim(0, max_x * 1.18)
 
     ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: _fmt_br(v)))
     ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
@@ -1548,8 +1584,16 @@ def gerar_relatorio_pdf(
         df_regioes = pd.DataFrame()
     if df_calendario is None:
         df_calendario = pd.DataFrame()
-    if agrupamento is None:
-        agrupamento = "Consolidado"
+    if data_inicial is None and not df_geral.empty and 'data_fato' in df_geral.columns:
+        try:
+            data_inicial = df_geral['data_fato'].min().date()
+        except Exception:
+            pass
+    if data_final is None and not df_geral.empty and 'data_fato' in df_geral.columns:
+        try:
+            data_final = df_geral['data_fato'].max().date()
+        except Exception:
+            pass
 
     # Monta textos descritivos dos filtros
     if data_inicial and data_final:
@@ -1560,48 +1604,76 @@ def gerar_relatorio_pdf(
         periodo_str = "Todos os dados disponíveis"
 
     # Abrangência / Mesorregiões
-    mesos = [m for m in df_geral['mesoregiao'].unique() if m != 'Não informado'] if not df_geral.empty else []
-    if len(mesos) >= 6:
-        abrangencia_str = "Todo o Estado (SC)"
-    elif len(mesos) <= 2 and mesos:
-        abrangencia_str = ", ".join(mesos)
-    elif mesos:
-        abrangencia_str = f"{len(mesos)} Mesorregiões"
+    if mesorregioes_selecionadas is not None and len(mesorregioes_selecionadas) > 0 and len(mesorregioes_selecionadas) < 6:
+        if len(mesorregioes_selecionadas) <= 2:
+            abrangencia_str = ", ".join(mesorregioes_selecionadas)
+        else:
+            abrangencia_str = f"{len(mesorregioes_selecionadas)} Mesorregiões Selecionadas"
     else:
-        abrangencia_str = "Todo o Estado (SC)"
+        mesos = [m for m in df_geral['mesoregiao'].unique() if m != 'Não informado'] if not df_geral.empty else []
+        if len(mesos) >= 6 or len(mesos) == 0:
+            abrangencia_str = "Todo o Estado (SC)"
+        elif len(mesos) <= 2:
+            abrangencia_str = ", ".join(mesos)
+        else:
+            abrangencia_str = f"{len(mesos)} Mesorregiões"
 
     # Municípios
-    muns = df_geral['municipio'].unique() if not df_geral.empty else []
-    if len(muns) >= 293:
-        muns_str = "Todos os 295 Municípios"
-    elif len(muns) == 1:
-        muns_str = muns[0]
-    elif len(muns) <= 3 and len(muns) > 0:
-        muns_str = ", ".join(muns)
-    elif len(muns) > 0:
-        muns_str = f"{len(muns)} Municípios Selecionados"
+    if municipios_selecionados is not None and len(municipios_selecionados) > 0 and len(municipios_selecionados) < 290:
+        if len(municipios_selecionados) == 1:
+            muns_str = municipios_selecionados[0]
+        elif len(municipios_selecionados) <= 3:
+            muns_str = ", ".join(municipios_selecionados)
+        else:
+            muns_str = f"{len(municipios_selecionados)} Municípios Selecionados"
     else:
-        muns_str = "Todos os 295 Municípios"
+        muns = df_geral['municipio'].unique() if not df_geral.empty else []
+        if len(muns) >= 290 or len(muns) == 0:
+            muns_str = "Todos os 295 Municípios"
+        elif len(muns) == 1:
+            muns_str = str(muns[0])
+        elif len(muns) <= 3:
+            muns_str = ", ".join([str(m) for m in muns])
+        else:
+            muns_str = f"{len(muns)} Municípios Selecionados"
 
     # Associações de Municípios
-    assocs = [a for a in df_geral['associacao'].unique() if a != 'Não informado'] if not df_geral.empty else []
-    if len(assocs) >= 20:
-        assocs_str = "Todas / Diversas Associações de Municípios"
-    elif len(assocs) <= 2 and assocs:
-        assocs_str = ", ".join(assocs)
-    elif assocs:
-        assocs_str = f"{len(assocs)} Associações de Municípios"
+    if associacoes_selecionadas is not None and len(associacoes_selecionadas) > 0 and len(associacoes_selecionadas) < 21:
+        if len(associacoes_selecionadas) == 1:
+            assocs_str = associacoes_selecionadas[0]
+        elif len(associacoes_selecionadas) <= 3:
+            assocs_str = ", ".join(associacoes_selecionadas)
+        else:
+            assocs_str = f"{len(associacoes_selecionadas)} Associações Selecionadas"
     else:
-        assocs_str = "Todas / Diversas Associações de Municípios"
+        assocs = [a for a in df_geral['associacao'].unique() if str(a).strip() not in ['', 'Não informado']] if not df_geral.empty else []
+        if len(assocs) == 1:
+            assocs_str = str(assocs[0])
+        elif len(assocs) <= 3 and len(assocs) > 0:
+            assocs_str = ", ".join([str(a) for a in assocs])
+        elif len(assocs) > 3 and len(assocs) < 20:
+            assocs_str = f"{len(assocs)} Associações de Municípios"
+        else:
+            assocs_str = "Todas as Associações (SC)"
 
     # Crimes
-    crimes = df_geral['fato_comunicado'].unique() if not df_geral.empty else []
-    if len(crimes) >= 5 or len(crimes) == 0:
-        crimes_str = "Todos os crimes cadastrados"
-    elif len(crimes) == 1:
-        crimes_str = crimes[0]
+    if crimes_selecionados is not None and len(crimes_selecionados) > 0 and len(crimes_selecionados) < 11:
+        if len(crimes_selecionados) == 1:
+            crimes_str = crimes_selecionados[0]
+        elif len(crimes_selecionados) <= 2:
+            crimes_str = ", ".join(crimes_selecionados)
+        else:
+            crimes_str = f"{len(crimes_selecionados)} Crimes Selecionados"
     else:
-        crimes_str = f"{len(crimes)} Crimes Selecionados"
+        crimes = df_geral['fato_comunicado'].unique() if not df_geral.empty else []
+        if len(crimes) >= 11 or len(crimes) == 0:
+            crimes_str = "Todos os crimes cadastrados"
+        elif len(crimes) == 1:
+            crimes_str = str(crimes[0])
+        elif len(crimes) <= 2:
+            crimes_str = ", ".join([str(c) for c in crimes])
+        else:
+            crimes_str = f"{len(crimes)} Crimes Selecionados"
 
     # Faixa Etária
     if idade_selecionada is not None and hasattr(idade_selecionada, '__getitem__') and len(idade_selecionada) == 2:
@@ -2070,7 +2142,7 @@ def gerar_relatorio_pdf(
 
         img_meio = render_chart_meio_crime(meio, agrupamento, color_p)
 
-        add_two_images(pdf, img_vinculo, img_meio, title1="Vínculo / Relação da Vítima com o Autor", title2="Meio Empregado no Feminicídio", max_h=92)
+        add_two_images(pdf, img_vinculo, img_meio, title1="Vínculo / Relação do Autor com a Vítima", title2="Meio Empregado no Feminicídio", max_h=92)
 
     # =========================================================================
     # PÁGINA 14: CONTEXTO DO RELACIONAMENTO, FILHOS E LOCAL DO CRIME
@@ -2144,14 +2216,6 @@ def gerar_relatorio_pdf(
             "Índice de Letalidade da Violência Contra a Mulher",
             "Relação percentual entre ocorrências violentas e desfecho fatal"
         )
-        pdf.set_font(pdf.font_family_name, '', 7.6)
-        pdf.set_text_color(*CINZA_TEXTO)
-        pdf.multi_cell(
-            190, 4.0,
-            'O Índice de Letalidade expressa a proporção: "A cada 100 ocorrências de violência contra a mulher registradas, '
-            'quantas resultaram em feminicídio consumado?" Regiões com índice elevado merecem atenção redobrada das forças de segurança e da rede de proteção.'
-        )
-        pdf.ln(3)
 
         agrup_let = agrupamento if agrupamento != "Consolidado" else "Mesorregião"
         df_letalidade = calcular_indice_letalidade(df_geral, df_feminicidio, agrup_let)
@@ -2215,8 +2279,8 @@ def gerar_relatorio_pdf(
     pdf.multi_cell(
         186, 3.5,
         "- Fatos por Mil Mulheres (Taxa Demográfica Anual): [(Média Anual de Fatos / População Feminina)] * 1.000. Ajusta os números pela densidade populacional, permitindo comparação justa entre municípios de portes distintos.\n"
-        "- % de Mulheres Vítimas (anual): [(Média Anual de Fatos / População Feminina)] * 100. Expressa a taxa percentual de mulheres vítimas na localidade.\n"
-        "- Índice de Letalidade (%): [Total de Feminicídios / (Total de Ocorrências + Total de Feminicídios)] * 100. Mensura a proporção de desfechos fatais no universo de crimes reportados.\n"
+        "- % de Mulheres Vítimas (anual): [(Média Anual de Fatos / População Feminina)] * 100. Taxa percentual anualizada de mulheres vítimas na localidade.\n"
+        "- Índice de Letalidade (%): [Total de Feminicídios / (Total de Ocorrências + Total de Feminicídios)] * 100. Proporção de desfechos fatais no universo de crimes reportados.\n"
         "- Tendência Anual (% a.a.): Estimada por Regressão Linear Ordinária sobre a série mensal completa, calculando a inclinação percentual anual sem expurgo de dados pontuais.\n"
         "- Diferença Anual (%): [(Valor Ano Atual - Valor Ano Anterior) / Valor Ano Anterior] * 100. Variação percentual ano a ano."
     )
@@ -2240,7 +2304,7 @@ def gerar_relatorio_pdf(
         186, 3.5,
         "- Fontes Primárias Oficiais: Gerência de Estatística e Análise Criminal da Secretaria de Estado da Segurança Pública (GEAC / DINE / SSP-SC) e estimativas populacionais do IBGE.\n"
         "- Parceria Institucional: Observatório da Violência Contra a Mulher de Santa Catarina (OVM/SC) em cooperação com o Ministério Público de Contas de Santa Catarina (MPC/SC).\n"
-        "- Nota sobre Subnotificação: Os dados registram exclusivamente os fatos formalizados perante as autoridades policiais. Crimes de violência doméstica possuem histórico de cifra oculta, expressando a ponta atendida pelo Estado."
+        "- Nota sobre Subnotificação: Os dados registram exclusivamente os fatos formalizados perante as autoridades policiais competentes."
     )
 
     # Exporta para bytes
