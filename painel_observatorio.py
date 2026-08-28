@@ -18,8 +18,9 @@ def carregar_css(caminho_arquivo):
 
 st.set_page_config(
     page_title="Observatório da Violência Contra a Mulher - SC",
-    page_icon="\U0001f49c",
-    layout="wide"
+    page_icon="💜",
+    layout="wide",
+    initial_sidebar_state="auto"
 )
 
 css_personalizado = carregar_css("style.css")
