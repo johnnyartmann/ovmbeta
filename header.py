@@ -188,21 +188,23 @@ def render_custom_header(df_geral_filtrado=None, idade_selecionada=None):
             border-radius: 8px !important;
         }
 
-        [data-testid="stHorizontalBlock"]:has(button[key*="btn_"]),
-        [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-secondary"]),
-        [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-primary"]) {
-            display: flex !important;
-            flex-wrap: wrap !important;
-            gap: 0.5rem !important;
-            margin-bottom: 0.75rem !important;
-        }
+        @media (min-width: 769px) {
+            [data-testid="stHorizontalBlock"]:has(button[key*="btn_"]),
+            [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-secondary"]),
+            [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-primary"]) {
+                display: flex !important;
+                flex-wrap: nowrap !important;
+                gap: 0.5rem !important;
+                margin-bottom: 0.75rem !important;
+            }
 
-        [data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) > div,
-        [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-secondary"]) > div,
-        [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-primary"]) > div {
-            flex: 1 1 200px !important;
-            min-width: 175px !important;
-            max-width: 100% !important;
+            [data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) > div,
+            [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-secondary"]) > div,
+            [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-primary"]) > div {
+                flex: 1 1 0px !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+            }
         }
 
         /* CONTAINER PAI FIXO / STICKY NO STREAMLIT */
