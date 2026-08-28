@@ -755,17 +755,20 @@ def plot_efetividade_denuncia(df_efetividade):
                      title="Efetividade da Denúncia: Crimes Leves vs. Graves por Município")
     fig.update_traces(marker=dict(size=10, opacity=0.7, color='#8e24aa'))
 
-    # Linha de tendência manual (sem statsmodels)
     import numpy as np
-    x = df_efetividade['taxa_crimes_leves'].dropna().values
-    y = df_efetividade['taxa_crimes_graves'].dropna().values
-    if len(x) > 1 and len(x) == len(y):
-        coeffs = np.polynomial.polynomial.polyfit(x, y, 1)
-        x_sorted = np.sort(x)
-        y_trend = np.polynomial.polynomial.polyval(x_sorted, coeffs)
-        fig.add_trace(go.Scatter(x=x_sorted, y=y_trend, mode='lines',
-                                 line=dict(dash='dash', color='rgba(142,36,170,0.5)', width=2),
-                                 name='Tendência', showlegend=False))
+    df_valid = df_efetividade.dropna(subset=['taxa_crimes_leves', 'taxa_crimes_graves'])
+    x = df_valid['taxa_crimes_leves'].values
+    y = df_valid['taxa_crimes_graves'].values
+    if len(x) >= 3 and len(x) == len(y) and float(np.std(x)) > 1e-5 and float(np.std(y)) > 1e-5:
+        try:
+            coeffs = np.polynomial.polynomial.polyfit(x, y, 1)
+            x_sorted = np.sort(x)
+            y_trend = np.polynomial.polynomial.polyval(x_sorted, coeffs)
+            fig.add_trace(go.Scatter(x=x_sorted, y=y_trend, mode='lines',
+                                     line=dict(dash='dash', color='rgba(142,36,170,0.5)', width=2),
+                                     name='Tendência', showlegend=False))
+        except Exception:
+            pass
 
     fig.update_layout(separators=",.")
     return fig
