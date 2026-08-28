@@ -1,59 +1,117 @@
 /* Importar fontes */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* Configurações globais */
 * {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* Fundo principal */
 .main {
     background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+    width: 100%;
+    min-height: 100vh;
 }
 
-/* ========== BOTÕES DE NAVEGAÇÃO (STREAMLIT) ========== */
-/* Estilo dos botões de navegação das abas */
-[data-testid="stHorizontalBlock"] button {
-    transition: all 0.25s ease !important;
+/* Header do Streamlit */
+header[data-testid="stHeader"] {
+    visibility: visible !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    z-index: 1000 !important;
+}
+
+[data-testid="stToolbar"] button,
+header[data-testid="stHeader"] button {
+    color: #4a148c !important;
+    fill: #4a148c !important;
+}
+
+/* Botão de abrir menu/sidebar no topo esquerdo (Hamburguer/Toggle) */
+[data-testid="stSidebarCollapsedControl"] {
+    z-index: 1000000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    top: 0.5rem !important;
+    left: 0.5rem !important;
+}
+
+[data-testid="stSidebarCollapsedControl"] button {
+    background-color: #ffffff !important;
+    border: 1.5px solid #8e24aa !important;
     border-radius: 8px !important;
-    border: 1px solid #e0e0e0 !important;
-    font-weight: 500 !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    box-shadow: 0 2px 8px rgba(74, 20, 140, 0.25) !important;
+    color: #4a148c !important;
+    fill: #4a148c !important;
+    padding: 0.35rem 0.6rem !important;
+    transition: all 0.2s ease !important;
 }
 
-[data-testid="stHorizontalBlock"] button:hover {
-    border-color: #dfc8e8 !important;
-    background-color: #f9f5ff !important;
-    box-shadow: 0 2px 6px rgba(142, 36, 170, 0.15) !important;
-    transform: translateY(-1px) !important;
-}
-
-[data-testid="stHorizontalBlock"] button:active,
-[data-testid="stHorizontalBlock"] button:focus {
-    background: linear-gradient(135deg, #8e24aa 0%, #ab47bc 100%) !important;
-    color: white !important;
-    border-color: #8e24aa !important;
+[data-testid="stSidebarCollapsedControl"] button:hover {
+    background-color: #f3e5f5 !important;
+    transform: scale(1.05) !important;
     box-shadow: 0 4px 12px rgba(142, 36, 170, 0.35) !important;
 }
 
-/* Sidebar customizada (360px) com proteção contra overflow */
-section[data-testid="stSidebar"],
-[data-testid="stSidebar"] {
-    min-width: 360px !important;
-    max-width: 360px !important;
-    width: 360px !important;
-    background: linear-gradient(180deg, #2e0854 0%, #4a148c 50%, #5c1d8c 100%) !important;
-    box-shadow: 3px 0 15px rgba(0, 0, 0, 0.25);
-    overflow-x: hidden !important;
-    box-sizing: border-box !important;
+footer { 
+    visibility: hidden; 
 }
 
-[data-testid="stSidebarContent"] {
-    width: 360px !important;
-    max-width: 360px !important;
-    padding: 1rem 0.9rem 3rem 0.9rem !important;
+/* ========== BARRA LATERAL (SIDEBAR) & CONTROLE DE ESTADO ========== */
+section[data-testid="stSidebar"],
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #2e0854 0%, #4a148c 50%, #5c1d8c 100%) !important;
+    box-shadow: 3px 0 18px rgba(0, 0, 0, 0.3);
     box-sizing: border-box !important;
-    overflow-x: hidden !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease !important;
+}
+
+/* Sidebar Recolhida (Estado Fechado - Geral) */
+section[data-testid="stSidebar"][aria-expanded="false"],
+[data-testid="stSidebar"][aria-expanded="false"] {
+    min-width: 0px !important;
+    max-width: 0px !important;
+    width: 0px !important;
+    transform: translateX(-100%) !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Sidebar Expandida em Desktop (> 768px) */
+@media (min-width: 769px) {
+    section[data-testid="stSidebar"][aria-expanded="true"],
+    [data-testid="stSidebar"][aria-expanded="true"],
+    section[data-testid="stSidebar"]:not([aria-expanded="false"]),
+    [data-testid="stSidebar"]:not([aria-expanded="false"]) {
+        min-width: 340px !important;
+        max-width: 360px !important;
+        width: 360px !important;
+        transform: translateX(0) !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        overflow-x: hidden !important;
+    }
+
+    [data-testid="stSidebarContent"] {
+        width: 360px !important;
+        max-width: 360px !important;
+        padding: 1rem 0.9rem 3rem 0.9rem !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
 }
 
 [data-testid="stSidebarUserContent"] {
@@ -635,33 +693,49 @@ button[data-testid="stBaseButton-secondary"] {
 
 /* 4. Celulares e Dispositivos Móveis (<= 768px) */
 @media (max-width: 768px) {
-    section[data-testid="stSidebar"],
-    [data-testid="stSidebar"] {
-        min-width: 100vw !important;
-        max-width: 100vw !important;
-        width: 100vw !important;
+    /* Sidebar Expandida em Celulares (Gaveta Deslizante / Drawer Modal) */
+    section[data-testid="stSidebar"][aria-expanded="true"],
+    [data-testid="stSidebar"][aria-expanded="true"] {
+        min-width: 85vw !important;
+        max-width: 360px !important;
+        width: 85vw !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100vh !important;
+        z-index: 999999 !important;
+        box-shadow: 6px 0 25px rgba(0, 0, 0, 0.6) !important;
+        transform: translateX(0) !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
     }
 
     [data-testid="stSidebarContent"] {
         width: 100% !important;
         max-width: 100% !important;
-        padding: 1rem 0.75rem 3rem 0.75rem !important;
+        padding: 1rem 0.75rem 3.5rem 0.75rem !important;
+        box-sizing: border-box !important;
     }
 
-    .block-container {
-        padding-top: 0.8rem !important;
-        padding-bottom: 1.5rem !important;
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
+    .block-container,
+    [data-testid="stMainBlockContainer"] {
+        padding-top: 3.2rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 0.6rem !important;
+        padding-right: 0.6rem !important;
+        width: 100% !important;
         max-width: 100% !important;
+        box-sizing: border-box !important;
     }
 
     h1 {
-        font-size: 1.6rem !important;
+        font-size: 1.5rem !important;
     }
 
     h2 {
-        font-size: 1.3rem !important;
+        font-size: 1.25rem !important;
     }
 
     h3 {
@@ -669,37 +743,73 @@ button[data-testid="stBaseButton-secondary"] {
     }
 
     [data-testid="stMetricValue"] {
-        font-size: 1.5rem !important;
+        font-size: 1.4rem !important;
     }
 
     [data-testid="stMetricLabel"] {
-        font-size: 0.85rem !important;
+        font-size: 0.82rem !important;
     }
 
     [data-testid="stMetric"] {
-        padding: 0.8rem !important;
+        padding: 0.75rem !important;
     }
 
-    /* Faz as colunas empilharem verticalmente no celular */
-    [data-testid="stHorizontalBlock"] {
+    /* Colunas gerais empilham verticalmente no celular */
+    [data-testid="stHorizontalBlock"]:not(:has(button[key*="btn_"])):not(:has([data-testid="stBaseButton-secondary"])):not(:has([data-testid="stBaseButton-primary"])) {
         flex-direction: column !important;
         gap: 0.8rem !important;
+    }
+
+    /* Botões das abas viram grade 2x2 no mobile */
+    [data-testid="stHorizontalBlock"]:has(button[key*="btn_"]),
+    [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-secondary"]),
+    [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-primary"]) {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 0.4rem !important;
+        width: 100% !important;
+        margin-bottom: 0.75rem !important;
+    }
+
+    [data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) > div,
+    [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-secondary"]) > div,
+    [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-primary"]) > div {
+        flex: 1 1 calc(50% - 0.3rem) !important;
+        min-width: 130px !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .stButton > button,
+    button[data-testid="stBaseButton-primary"],
+    button[data-testid="stBaseButton-secondary"] {
+        font-size: 0.78rem !important;
+        padding: 0.45rem 0.4rem !important;
+        min-height: 38px !important;
+        white-space: normal !important;
+        text-align: center !important;
+        line-height: 1.15 !important;
     }
 
     /* Cards de filtro ativos adaptados para 2 por linha no celular */
     .custom-info-cards-wrapper {
         padding: 0.5rem 0.6rem !important;
         margin-bottom: 1rem !important;
+        border-radius: 10px !important;
     }
 
     .info-container {
         gap: 0.4rem !important;
+        justify-content: space-between !important;
     }
 
     .info-card {
-        flex: 1 1 calc(50% - 0.4rem) !important;
-        min-width: 120px !important;
-        padding: 0.35rem 0.5rem !important;
+        flex: 1 1 calc(50% - 0.3rem) !important;
+        min-width: 125px !important;
+        max-width: 100% !important;
+        padding: 0.35rem 0.45rem !important;
+        box-sizing: border-box !important;
     }
 
     .info-card h5 {
@@ -719,11 +829,26 @@ button[data-testid="stBaseButton-secondary"] {
         padding: 0.3rem !important;
     }
 
-    /* Rodapé relativo */
+    /* Rodapé no celular */
     .footer {
         position: relative;
         padding: 0.8rem;
         font-size: 0.75rem;
+    }
+}
+
+/* 5. Telas Ultra-Pequenas (<= 360px) */
+@media (max-width: 360px) {
+    .info-card {
+        flex: 1 1 100% !important;
+        min-width: 100% !important;
+    }
+
+    [data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) > div,
+    [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-secondary"]) > div,
+    [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-primary"]) > div {
+        flex: 1 1 100% !important;
+        min-width: 100% !important;
     }
 }
 
