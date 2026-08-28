@@ -359,6 +359,22 @@ def render_custom_header(df_geral_filtrado=None, idade_selecionada=None):
             font-weight: 700;
         }
 
+        /* Oculta o header de resumo de filtros no celular */
+        @media (max-width: 768px) {
+            .custom-info-cards-wrapper,
+            div[data-testid="stElementContainer"]:has(.custom-info-cards-wrapper),
+            div.element-container:has(.custom-info-cards-wrapper),
+            [data-testid="stVerticalBlock"] > div:has(.custom-info-cards-wrapper) {
+                display: none !important;
+                visibility: hidden !important;
+                height: 0 !important;
+                max-height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+            }
+        }
+
         @media print {
             .block-container,
             .main,
