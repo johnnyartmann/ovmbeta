@@ -355,6 +355,24 @@ def _fmt_br(val):
         return str(val)
 
 
+def _fmt_media(val):
+    """Formata médias com casas decimais adaptativas para evitar exibir 0.0 em valores baixos."""
+    try:
+        val = float(val)
+        if val == 0:
+            return "0"
+        elif val >= 10:
+            return f"{val:.1f}".replace('.', ',')
+        elif val >= 1.0:
+            return f"{val:.2f}".replace('.', ',')
+        elif val >= 0.01:
+            return f"{val:.3f}".replace('.', ',')
+        else:
+            return f"{val:.4f}".replace('.', ',')
+    except Exception:
+        return str(val)
+
+
 def _preparar_top_categorias_piv(df_data, index_col, category_col, value_col, top_n=5):
     """
     Cria pivot table agregando categorias além do Top N em 'Outros...' para
@@ -570,14 +588,16 @@ def render_chart_tipo_crime(registros_por_fato, agrupamento="Consolidado", color
     if color_p and color_p in registros_por_fato.columns and agrupamento != "Consolidado":
         df_piv = _preparar_top_categorias_piv(registros_por_fato, 'fato_comunicado', color_p, 'Quantidade', top_n=5)
         df_piv['total_tmp'] = df_piv.sum(axis=1)
-        df_piv = df_piv.sort_values('total_tmp')
+        df_piv = df_piv[df_piv['total_tmp'] > 0].sort_values('total_tmp')
         df_piv = df_piv.drop(columns=['total_tmp'])
         palette = [COLOR_PRIMARY, COLOR_SECONDARY, '#1E88E5', '#43A047', '#FB8C00', '#757575']
         df_piv.plot(kind='barh', ax=ax, color=palette[:len(df_piv.columns)], width=0.8)
         labels_leg = [str(c)[:18] + ('..' if len(str(c)) > 18 else '') for c in df_piv.columns]
         ax.legend(labels_leg, frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=6.5, loc='lower right', ncol=min(len(df_piv.columns), 3))
     else:
-        df_all = registros_por_fato.iloc[::-1]
+        df_all = registros_por_fato[registros_por_fato['Quantidade'] > 0].sort_values('Quantidade', ascending=True)
+        if df_all.empty:
+            df_all = registros_por_fato.iloc[::-1]
         y_pos = range(len(df_all))
         labels = [str(x)[:28] + '..' if len(str(x)) > 28 else str(x) for x in df_all['fato_comunicado']]
         bars = ax.barh(y_pos, df_all['Quantidade'], color=COLOR_SECONDARY, height=0.65)
@@ -612,7 +632,11 @@ def render_chart_vulnerabilidade(df_plot):
     ax.set_facecolor('white')
 
     df_piv = df_plot.pivot(index='faixa_etaria', columns='fato_comunicado', values='percentual').fillna(0)
-    palette = ['#4A148C', '#7B1FA2', '#9C27B0', '#AB47BC', '#BA68C8', '#CE93D8', '#E1BEE7', '#F3E5F5']
+    cols_com_dados = [c for c in df_piv.columns if df_piv[c].sum() > 0]
+    if cols_com_dados:
+        df_piv = df_piv[cols_com_dados]
+
+    palette = ['#4A148C', '#7B1FA2', '#9C27B0', '#AB47BC', '#BA68C8', '#CE93D8', '#E1BEE7', '#F3E5F5', '#880E4F', '#C2185B', '#E91E63']
     df_piv.plot(kind='bar', stacked=True, ax=ax, color=palette[:len(df_piv.columns)], width=0.65, edgecolor='white', linewidth=0.5)
 
     ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
@@ -867,7 +891,7 @@ def render_chart_sazonal_tipo_dia(df_geral, df_calendario, data_inicial, data_fi
     max_y = max(vals) if vals else 1
     for bar in bars:
         h = bar.get_height()
-        ax.annotate(f"{h:.1f}",
+        ax.annotate(_fmt_media(h),
                     xy=(bar.get_x() + bar.get_width() / 2, h),
                     xytext=(0, 3), textcoords="offset points",
                     ha='center', va='bottom', fontsize=7.5, fontweight='bold', color=COLOR_PRIMARY)
@@ -954,6 +978,7 @@ def render_chart_heatmap_sazonal(df_geral, df_calendario, data_inicial, data_fin
 
     piv = piv.reindex(index=meses_en, columns=dias_en, fill_value=0)
     data_mat = piv.values
+    max_val = data_mat.max() if data_mat.size > 0 else 0
 
     im = ax.imshow(data_mat, cmap='Purples', aspect='auto')
     ax.set_xticks(range(7))
@@ -964,8 +989,18 @@ def render_chart_heatmap_sazonal(df_geral, df_calendario, data_inicial, data_fin
     for i in range(12):
         for j in range(7):
             val = data_mat[i, j]
-            cor_txt = 'white' if val > data_mat.max() * 0.65 else COLOR_TEXT_PLOT
-            ax.text(j, i, f"{val:.0f}", ha='center', va='center', fontsize=6.5, color=cor_txt, fontweight='bold')
+            if val == 0:
+                txt_val = "0"
+            elif max_val >= 10:
+                txt_val = f"{val:.0f}"
+            elif max_val >= 1.0:
+                txt_val = f"{val:.1f}".replace('.', ',')
+            elif max_val >= 0.01:
+                txt_val = f"{val:.2f}".replace('.', ',')
+            else:
+                txt_val = f"{val:.3f}".replace('.', ',')
+            cor_txt = 'white' if (max_val > 0 and val > max_val * 0.65) else COLOR_TEXT_PLOT
+            ax.text(j, i, txt_val, ha='center', va='center', fontsize=6.2, color=cor_txt, fontweight='bold')
 
     cbar = fig.colorbar(im, ax=ax, shrink=0.8, pad=0.03)
     cbar.ax.tick_params(labelsize=6.5)
@@ -980,13 +1015,24 @@ def render_chart_heatmap_vulnerabilidade(df_geral):
     ax.set_facecolor('white')
 
     df_vuln = df_geral.dropna(subset=['idade_vitima']).copy()
+    if df_vuln.empty:
+        ax.text(0.5, 0.5, 'Dados insuficientes de faixa etária', ha='center', va='center', fontsize=8)
+        return _fig_to_png_bytes(fig)
+
     bins = [0, 12, 17, 29, 40, 50, 60, 70, 79, 120]
     labels = ['0-12', '13-17', '18-29', '30-40', '41-50', '51-60', '61-70', '71-79', '80+']
     df_vuln['faixa_etaria'] = pd.cut(df_vuln['idade_vitima'], bins=bins, labels=labels, right=True)
 
-    piv = df_vuln.groupby(['fato_comunicado', 'faixa_etaria'], observed=False).size().unstack(fill_value=0)
-    ordem_crimes = df_vuln['fato_comunicado'].value_counts().index
-    piv = piv.loc[ordem_crimes]
+    crimes_com_dados = df_vuln['fato_comunicado'].value_counts()
+    crimes_com_dados = crimes_com_dados[crimes_com_dados > 0].index
+
+    piv = df_vuln.groupby(['fato_comunicado', 'faixa_etaria'], observed=True).size().unstack(fill_value=0)
+    piv = piv.reindex(columns=labels, fill_value=0)
+    piv = piv.loc[[c for c in crimes_com_dados if c in piv.index]]
+
+    if piv.empty:
+        ax.text(0.5, 0.5, 'Dados insuficientes', ha='center', va='center', fontsize=8)
+        return _fig_to_png_bytes(fig)
 
     data_mat = piv.values
     im = ax.imshow(data_mat, cmap='BuPu', aspect='auto')
@@ -1785,8 +1831,8 @@ def gerar_relatorio_pdf(
 
     add_kpis(pdf, [
         {'label': 'Total Registros', 'value': f"{total_registros:,}".replace(',', '.')},
-        {'label': 'Média / Dia', 'value': f"{crimes_por_dia:.1f}"},
-        {'label': 'Média / Hora', 'value': f"{crimes_por_hora:.2f}"},
+        {'label': 'Média / Dia', 'value': _fmt_media(crimes_por_dia)},
+        {'label': 'Média / Hora', 'value': _fmt_media(crimes_por_hora)},
         {'label': 'Tendência', 'value': tend_texto},
         {'label': 'Idade Média', 'value': f"{media_idade:.1f} anos"},
         {'label': 'Fins de Semana', 'value': f"{pct_fds:.1f}%"},
@@ -1806,9 +1852,10 @@ def gerar_relatorio_pdf(
     pdf.ln(3)
 
     if not df_geral.empty:
-        crimes_tab = df_geral['fato_comunicado'].value_counts().reset_index()
+        crimes_tab = df_geral['fato_comunicado'].value_counts()
+        crimes_tab = crimes_tab[crimes_tab > 0].reset_index()
         crimes_tab.columns = ['Natureza do Crime', 'Total']
-        crimes_tab['% do Total'] = (crimes_tab['Total'] / total_registros * 100).apply(lambda x: f"{x:.1f}%")
+        crimes_tab['% do Total'] = (crimes_tab['Total'] / max(1, total_registros) * 100).apply(lambda x: f"{x:.1f}%")
         add_table(pdf, crimes_tab, title="Fatos Comunicados (Lei Maria da Penha)")
 
     # =========================================================================
@@ -2245,7 +2292,7 @@ def gerar_relatorio_pdf(
                 'total_feminicidios': 'Feminicídios',
                 'indice_letalidade': 'Índice de Letalidade (%)'
             })
-            add_table(pdf, df_ranking, max_rows=20, title=f"Ranking de Letalidade por {agrup_let}")
+            add_table(pdf, df_ranking, max_rows=20, title=f"Letalidade por {agrup_let}")
 
     # =========================================================================
     # PÁGINA 18: METODOLOGIA, MARCO LEGAL E GLOSSÁRIO OFICIAL
