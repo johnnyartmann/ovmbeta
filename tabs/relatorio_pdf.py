@@ -1017,6 +1017,10 @@ def render_chart_efetividade_denuncia(df_geral, df_populacao):
     crimes_leves = ["Ameaça", "Vias de fato"]
     crimes_graves = ["Lesão corporal leve - Dolosa", "Lesão corporal grave ou gravíssima - Dolosa", "Estupro", "Feminicídio"]
 
+    if df_geral.empty or df_populacao.empty:
+        ax.text(0.5, 0.5, "Dados insuficientes para gerar a correlação", ha='center', va='center', transform=ax.transAxes, color=COLOR_TEXT_PLOT)
+        return _fig_to_png_bytes(fig)
+
     df_leves = df_geral[df_geral['fato_comunicado'].isin(crimes_leves)]
     c_leves = df_leves.groupby('municipio_normalizado', observed=True).size().reset_index(name='leves')
     df_graves = df_geral[df_geral['fato_comunicado'].isin(crimes_graves)]
@@ -1026,20 +1030,31 @@ def render_chart_efetividade_denuncia(df_geral, df_populacao):
     df_efet = pd.merge(df_efet, df_populacao[['municipio_normalizado', 'populacao_feminina']], on='municipio_normalizado', how='left')
     df_efet = df_efet[df_efet['populacao_feminina'] > 500]
 
+    if df_efet.empty:
+        ax.text(0.5, 0.5, "Dados insuficientes para gerar a correlação", ha='center', va='center', transform=ax.transAxes, color=COLOR_TEXT_PLOT)
+        return _fig_to_png_bytes(fig)
+
     anos_n = max(1, len(df_geral['ano'].unique()))
-    df_efet['tx_leves'] = (df_efet['leves'] / anos_n / df_efet['populacao_feminina']) * 1000
-    df_efet['tx_graves'] = (df_efet['graves'] / anos_n / df_efet['populacao_feminina']) * 1000
+    df_efet['tx_leves'] = (df_efet['leves'] / anos_n / df_efet['populacao_feminina'].replace(0, np.nan)) * 1000
+    df_efet['tx_graves'] = (df_efet['graves'] / anos_n / df_efet['populacao_feminina'].replace(0, np.nan)) * 1000
+    df_efet = df_efet.dropna(subset=['tx_leves', 'tx_graves'])
 
     x = df_efet['tx_leves'].values
     y = df_efet['tx_graves'].values
 
-    ax.scatter(x, y, color=COLOR_SECONDARY, alpha=0.55, edgecolors=COLOR_PRIMARY, s=32, label='Municípios Catarinenses')
+    if len(x) > 0:
+        ax.scatter(x, y, color=COLOR_SECONDARY, alpha=0.55, edgecolors=COLOR_PRIMARY, s=32, label='Municípios Catarinenses')
 
-    if len(x) > 2:
-        m, b = np.polyfit(x, y, 1)
-        r = np.corrcoef(x, y)[0, 1]
-        x_line = np.linspace(x.min(), x.max(), 100)
-        ax.plot(x_line, m * x_line + b, color='#D32F2F', linestyle='--', linewidth=1.8, label=f'Linha de Tendência OLS (r = {r:+.2f})')
+    # Regressão linear protegida contra variância nula e falha de convergência SVD
+    if len(x) >= 3 and float(np.std(x)) > 1e-5 and float(np.std(y)) > 1e-5:
+        try:
+            m, b = np.polyfit(x, y, 1)
+            r_matrix = np.corrcoef(x, y)
+            r = r_matrix[0, 1] if not np.isnan(r_matrix[0, 1]) else 0.0
+            x_line = np.linspace(x.min(), x.max(), 100)
+            ax.plot(x_line, m * x_line + b, color='#D32F2F', linestyle='--', linewidth=1.8, label=f'Linha de Tendência OLS (r = {r:+.2f})')
+        except Exception:
+            pass
 
     ax.tick_params(colors=COLOR_TEXT_PLOT, labelsize=7.5)
     ax.grid(True, linestyle='--', alpha=0.6, color=COLOR_GRID_PLOT)
@@ -1049,7 +1064,10 @@ def render_chart_efetividade_denuncia(df_geral, df_populacao):
     ax.spines['bottom'].set_color('#BDBDBD')
     ax.set_xlabel('Taxa de Crimes Leves / 1.000 Mulheres (Ameaça, Vias de Fato)', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
     ax.set_ylabel('Taxa de Crimes Graves / 1.000 Mulheres (Lesão, Feminicídio)', fontsize=8, fontweight='bold', color=COLOR_PRIMARY)
-    ax.legend(frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=7.5, loc='upper left')
+
+    handles, labels = ax.get_legend_handles_labels()
+    if handles:
+        ax.legend(handles, labels, frameon=True, facecolor='#f8f4fb', edgecolor='#d1c4e9', fontsize=7.5, loc='upper left')
 
     return _fig_to_png_bytes(fig)
 
