@@ -2,6 +2,7 @@ import base64
 import os
 from datetime import datetime
 import streamlit as st
+import textwrap
 
 
 @st.cache_data
@@ -139,6 +140,264 @@ def render_custom_header(df_geral_filtrado=None, idade_selecionada=None):
     # Injeta cabeçalho institucional para impressão (Ctrl+P)
     print_header_html = build_institutional_print_header(df_geral_filtrado, idade_selecionada)
     st.markdown(print_header_html, unsafe_allow_html=True)
+
+    # --- CSS PARA HEADER E CARDS ---
+    header_style = textwrap.dedent("""
+    <style>
+        /* RESET & Compatibilidade */
+        header[data-testid="stHeader"] {
+            visibility: visible !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            z-index: 1000 !important;
+        }
+
+        [data-testid="stSidebarCollapsedControl"] button,
+        [data-testid="stToolbar"] button,
+        header[data-testid="stHeader"] button {
+            color: #4a148c !important;
+            fill: #4a148c !important;
+        }
+
+        footer { visibility: hidden; }
+
+        /* AJUSTES DE LAYOUT PRINCIPAL */
+        .block-container {
+            padding-top: 1.5rem !important;
+            padding-bottom: 2rem !important;
+            max-width: 95% !important;
+        }
+
+        /* BOTÕES DE NAVEGAÇÃO RESPONSIVOS SEM QUEBRA DE PALAVRAS */
+        .stButton > button,
+        button[data-testid="stBaseButton-primary"],
+        button[data-testid="stBaseButton-secondary"] {
+            white-space: nowrap !important;
+            word-break: keep-all !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            min-height: 42px !important;
+            height: auto !important;
+            padding: 0.55rem 0.85rem !important;
+            font-size: clamp(0.78rem, 0.9vw, 0.95rem) !important;
+            font-weight: 700 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 0.35rem !important;
+            border-radius: 8px !important;
+        }
+
+        [data-testid="stHorizontalBlock"]:has(button[key*="btn_"]),
+        [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-secondary"]),
+        [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-primary"]) {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+            margin-bottom: 0.75rem !important;
+        }
+
+        [data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) > div,
+        [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-secondary"]) > div,
+        [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-primary"]) > div {
+            flex: 1 1 200px !important;
+            min-width: 175px !important;
+            max-width: 100% !important;
+        }
+
+        /* CONTAINER PAI FIXO / STICKY NO STREAMLIT */
+        div[data-testid="stElementContainer"]:has(.custom-info-cards-wrapper),
+        div.element-container:has(.custom-info-cards-wrapper),
+        [data-testid="stVerticalBlock"] > div:has(.custom-info-cards-wrapper) {
+            position: -webkit-sticky !important;
+            position: sticky !important;
+            top: 0px !important;
+            z-index: 995 !important;
+            width: 100% !important;
+        }
+
+        /* BANNER DE CARDS DE RESUMO FIXO / STICKY COM EFEITO VIDRO */
+        .custom-info-cards-wrapper {
+            position: -webkit-sticky !important;
+            position: sticky !important;
+            top: 0px !important;
+            z-index: 995 !important;
+            background: linear-gradient(135deg, rgba(46, 8, 84, 0.90) 0%, rgba(74, 20, 140, 0.90) 50%, rgba(106, 27, 154, 0.90) 100%) !important;
+            border-radius: 12px !important;
+            padding: 0.65rem 1rem !important;
+            margin-bottom: 1.5rem !important;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.4rem !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            backdrop-filter: blur(16px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.22) !important;
+        }
+
+        .header-info-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .info-container {
+            display: flex;
+            gap: 0.6rem;
+            width: 100%;
+            justify-content: center;
+            align-items: stretch;
+            flex-wrap: wrap;
+        }
+
+        .info-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #ffffff !important;
+            border-radius: 8px !important;
+            padding: 0.45rem 0.75rem !important;
+            flex: 1 1 140px;
+            min-width: 130px;
+            max-width: 210px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+            border: 1px solid rgba(142, 36, 170, 0.25) !important;
+            transition: all 0.2s ease;
+        }
+
+        .info-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15) !important;
+            border-color: #8e24aa !important;
+        }
+
+        .info-card h5 {
+            margin: 0 0 0.15rem 0 !important;
+            color: #666666 !important;
+            font-size: 10.5px !important;
+            text-transform: uppercase !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.5px !important;
+            text-align: center;
+        }
+
+        .info-card p {
+            margin: 0 !important;
+            color: #1a1a1a !important;
+            font-weight: 800 !important;
+            font-size: 14px !important;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .info-card span {
+            font-size: 10.5px !important;
+            color: #7b1fa2 !important;
+            font-weight: 600 !important;
+            text-align: center;
+            margin-top: 0.15rem !important;
+        }
+
+        /* EXPANDER HTML NO HEADER */
+        .header-expander {
+            margin-top: 0.25rem;
+            padding: 0.4rem 0.8rem;
+            background: white;
+            border: 1px solid rgba(142, 36, 170, 0.3);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+            color: #4a148c;
+        }
+
+        .header-expander:hover {
+            background: #faf7fc;
+            border-color: #8e24aa;
+        }
+
+        .header-expander summary {
+            font-weight: 600;
+            color: #4a148c;
+            font-size: 12px;
+            outline: none;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            justify-content: center;
+        }
+
+        .header-expander[open] summary {
+            color: #6a1b9a;
+            margin-bottom: 0.4rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            padding-bottom: 0.2rem;
+        }
+
+        .expander-content {
+            font-size: 12px;
+            color: #333;
+            line-height: 1.4;
+            text-align: center;
+        }
+
+        .expander-content p {
+            margin: 0.2rem 0;
+            word-break: break-word;
+        }
+
+        .expander-content strong {
+            color: #4a148c;
+            font-weight: 700;
+        }
+
+        @media print {
+            .block-container,
+            .main,
+            [data-testid="stMain"],
+            [data-testid="stMainBlockContainer"] {
+                padding-top: 0 !important;
+                margin-top: 0 !important;
+            }
+
+            [data-testid="stHeader"],
+            header[data-testid="stHeader"],
+            .custom-info-cards-wrapper,
+            [data-testid="stElementContainer"]:has(button),
+            [data-testid="stHorizontalBlock"]:has(button),
+            div.element-container:has(button),
+            div[data-testid="stElementContainer"]:has(.custom-info-cards-wrapper),
+            div.element-container:has(.custom-info-cards-wrapper),
+            [data-testid="stVerticalBlock"] > div:has(.custom-info-cards-wrapper) {
+                display: none !important;
+                visibility: hidden !important;
+                height: 0 !important;
+                max-height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+            }
+
+            .print-institutional-header {
+                display: block !important;
+                width: 100% !important;
+                margin-top: 0 !important;
+                padding-top: 0 !important;
+            }
+        }
+    </style>
+    """)
+
+    # --- INJETAR CSS ---
+    st.markdown(header_style, unsafe_allow_html=True)
 
     # --- CONSTRUIR INFO CARDS HTML ---
     def build_info_html(df_filtrado):
