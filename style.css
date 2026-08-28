@@ -497,22 +497,23 @@ button[data-testid="stBaseButton-secondary"] {
     transition: all 0.2s ease !important;
 }
 
-/* Transforma as 4 colunas de abas em grade 2x2 flexível quando a tela encolhe */
-[data-testid="stHorizontalBlock"]:has(button[key*="btn_"]),
-[data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-secondary"]),
-[data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-primary"]) {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 0.5rem !important;
-    margin-bottom: 0.75rem !important;
-}
+@media (min-width: 769px) {
+    [data-testid="stHorizontalBlock"]:has(button[key*="btn_"]),
+    [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-secondary"]),
+    [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-primary"]) {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        gap: 0.5rem !important;
+        margin-bottom: 0.75rem !important;
+    }
 
-[data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) > div,
-[data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-secondary"]) > div,
-[data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-primary"]) > div {
-    flex: 1 1 200px !important;
-    min-width: 175px !important;
-    max-width: 100% !important;
+    [data-testid="stHorizontalBlock"]:has(button[key*="btn_"]) > div,
+    [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-secondary"]) > div,
+    [data-testid="stHorizontalBlock"]:has([data-testid="stBaseButton-primary"]) > div {
+        flex: 1 1 0px !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
 }
 
 .stButton>button {
@@ -762,10 +763,59 @@ button[data-testid="stBaseButton-secondary"] {
         padding: 0.8rem !important;
     }
 
-    /* Faz as colunas empilharem verticalmente no celular */
+    /* Empilha colunas perfeitamente no celular sem espaços gigantes */
     [data-testid="stHorizontalBlock"] {
+        display: flex !important;
         flex-direction: column !important;
-        gap: 0.8rem !important;
+        gap: 0.35rem !important;
+        width: 100% !important;
+        margin-bottom: 0.4rem !important;
+    }
+
+    [data-testid="stHorizontalBlock"] > div,
+    [data-testid="column"] {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 auto !important;
+        min-height: auto !important;
+        height: auto !important;
+        margin: 0 0 0.35rem 0 !important;
+        padding: 0 !important;
+    }
+
+    [data-testid="column"] > div,
+    [data-testid="column"] [data-testid="stVerticalBlock"] {
+        gap: 0.25rem !important;
+        min-height: auto !important;
+        height: auto !important;
+    }
+
+    /* Botões 100% de largura no mobile, compactos e alinhados */
+    .stButton {
+        width: 100% !important;
+        margin: 0 !important;
+    }
+
+    .stButton > button,
+    button[data-testid="stBaseButton-primary"],
+    button[data-testid="stBaseButton-secondary"],
+    [data-testid="stDownloadButton"] > button {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        min-height: 42px !important;
+        height: auto !important;
+        padding: 0.55rem 0.75rem !important;
+        margin: 0 !important;
+        font-size: 0.88rem !important;
+        white-space: normal !important;
+        word-break: normal !important;
+        text-align: center !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.35rem !important;
     }
 
     /* Reduz o padding dos gráficos para caber em telas estreitas */
