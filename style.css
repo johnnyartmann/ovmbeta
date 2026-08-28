@@ -39,21 +39,47 @@
 /* Sidebar customizada (360px) com proteção contra overflow */
 section[data-testid="stSidebar"],
 [data-testid="stSidebar"] {
-    min-width: 360px !important;
-    max-width: 360px !important;
-    width: 360px !important;
     background: linear-gradient(180deg, #2e0854 0%, #4a148c 50%, #5c1d8c 100%) !important;
     box-shadow: 3px 0 15px rgba(0, 0, 0, 0.25);
     overflow-x: hidden !important;
     box-sizing: border-box !important;
+    transition: transform 0.3s ease, min-width 0.3s ease, max-width 0.3s ease, width 0.3s ease !important;
 }
 
-[data-testid="stSidebarContent"] {
-    width: 360px !important;
-    max-width: 360px !important;
-    padding: 1rem 0.9rem 3rem 0.9rem !important;
-    box-sizing: border-box !important;
-    overflow-x: hidden !important;
+/* Sidebar Recolhida (Fechada) */
+section[data-testid="stSidebar"][aria-expanded="false"],
+[data-testid="stSidebar"][aria-expanded="false"] {
+    min-width: 0px !important;
+    max-width: 0px !important;
+    width: 0px !important;
+    transform: translateX(-100%) !important;
+    margin-left: -360px !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+}
+
+/* Sidebar Expandida no Desktop */
+@media (min-width: 769px) {
+    section[data-testid="stSidebar"][aria-expanded="true"],
+    [data-testid="stSidebar"][aria-expanded="true"],
+    section[data-testid="stSidebar"]:not([aria-expanded="false"]),
+    [data-testid="stSidebar"]:not([aria-expanded="false"]) {
+        min-width: 360px !important;
+        max-width: 360px !important;
+        width: 360px !important;
+        transform: translateX(0) !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+    }
+
+    [data-testid="stSidebarContent"] {
+        width: 360px !important;
+        max-width: 360px !important;
+        padding: 1rem 0.9rem 3rem 0.9rem !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
 }
 
 [data-testid="stSidebarUserContent"] {
@@ -635,25 +661,81 @@ button[data-testid="stBaseButton-secondary"] {
 
 /* 4. Celulares e Dispositivos Móveis (<= 768px) */
 @media (max-width: 768px) {
-    section[data-testid="stSidebar"],
-    [data-testid="stSidebar"] {
-        min-width: 100vw !important;
-        max-width: 100vw !important;
-        width: 100vw !important;
+    /* No celular: Sidebar fechada fica 100% oculta; quando o usuário clica no >> ela abre */
+    section[data-testid="stSidebar"][aria-expanded="false"],
+    [data-testid="stSidebar"][aria-expanded="false"] {
+        min-width: 0px !important;
+        max-width: 0px !important;
+        width: 0px !important;
+        transform: translateX(-100%) !important;
+        margin-left: -100vw !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+
+    section[data-testid="stSidebar"][aria-expanded="true"],
+    [data-testid="stSidebar"][aria-expanded="true"] {
+        min-width: 85vw !important;
+        max-width: 360px !important;
+        width: 85vw !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100vh !important;
+        z-index: 999999 !important;
+        transform: translateX(0) !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        overflow-y: auto !important;
+        box-shadow: 6px 0 25px rgba(0, 0, 0, 0.6) !important;
     }
 
     [data-testid="stSidebarContent"] {
         width: 100% !important;
         max-width: 100% !important;
-        padding: 1rem 0.75rem 3rem 0.75rem !important;
+        padding: 1rem 0.75rem 3.5rem 0.75rem !important;
+    }
+
+    /* Oculta completamente o header com cards de filtros no celular */
+    .custom-info-cards-wrapper,
+    div[data-testid="stElementContainer"]:has(.custom-info-cards-wrapper),
+    div.element-container:has(.custom-info-cards-wrapper),
+    [data-testid="stVerticalBlock"] > div:has(.custom-info-cards-wrapper) {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
     }
 
     .block-container {
-        padding-top: 0.8rem !important;
+        padding-top: 3.2rem !important;
         padding-bottom: 1.5rem !important;
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
+        padding-left: 0.6rem !important;
+        padding-right: 0.6rem !important;
         max-width: 100% !important;
+    }
+
+    /* Botão de abrir sidebar (>>) sempre visível e destacado no topo */
+    [data-testid="stSidebarCollapsedControl"] {
+        z-index: 1000000 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        top: 0.5rem !important;
+        left: 0.5rem !important;
+    }
+
+    [data-testid="stSidebarCollapsedControl"] button {
+        background-color: #ffffff !important;
+        border: 1.5px solid #8e24aa !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 8px rgba(74, 20, 140, 0.25) !important;
+        color: #4a148c !important;
+        fill: #4a148c !important;
+        padding: 0.35rem 0.6rem !important;
     }
 
     h1 {
@@ -684,34 +766,6 @@ button[data-testid="stBaseButton-secondary"] {
     [data-testid="stHorizontalBlock"] {
         flex-direction: column !important;
         gap: 0.8rem !important;
-    }
-
-    /* Cards de filtro ativos adaptados para 2 por linha no celular */
-    .custom-info-cards-wrapper {
-        padding: 0.5rem 0.6rem !important;
-        margin-bottom: 1rem !important;
-    }
-
-    .info-container {
-        gap: 0.4rem !important;
-    }
-
-    .info-card {
-        flex: 1 1 calc(50% - 0.4rem) !important;
-        min-width: 120px !important;
-        padding: 0.35rem 0.5rem !important;
-    }
-
-    .info-card h5 {
-        font-size: 9.5px !important;
-    }
-
-    .info-card p {
-        font-size: 11.5px !important;
-    }
-
-    .info-card span {
-        font-size: 9px !important;
     }
 
     /* Reduz o padding dos gráficos para caber em telas estreitas */
